@@ -11,7 +11,7 @@ from __future__ import annotations
 from collections.abc import AsyncGenerator
 from uuid import UUID
 
-from fastapi import Depends, Header, HTTPException, status
+from fastapi import Depends, Header
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import AuthenticationException, AuthorizationException

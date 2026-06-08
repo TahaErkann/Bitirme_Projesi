@@ -10,7 +10,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.exceptions import ResourceNotFoundException
 from app.models.enrichment import Enrichment
 from app.models.ocr_result import OCRResult
-from app.models.place import Place
 from app.models.place_image import PlaceImage
 from app.models.user_interaction import UserInteraction
 from app.repositories.place_repository import PlaceRepository

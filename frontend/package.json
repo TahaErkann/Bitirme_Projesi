@@ -41,7 +41,7 @@
     "@react-native/eslint-config": "0.76.5",
     "@react-native/metro-config": "0.76.5",
     "@react-native/typescript-config": "0.76.5",
-    "@types/react": "^18.2.6",
+    "@types/react": "18.2.79",
     "@types/react-test-renderer": "^18.0.0",
     "babel-plugin-module-resolver": "^5.0.0",
     "babel-jest": "^29.6.3",
@@ -54,7 +54,8 @@
   "overrides": {
     "react-native-screens": "4.4.0",
     "react-native-maps": "1.20.1",
-    "react-native-gesture-handler": "2.21.2"
+    "react-native-gesture-handler": "2.21.2",
+    "@types/react": "18.2.79"
   },
   "engines": {
     "node": ">=18"

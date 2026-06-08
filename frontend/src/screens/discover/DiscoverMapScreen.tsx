@@ -10,7 +10,7 @@
  */
 import React, {useEffect, useRef, useState} from 'react';
 import {Animated, Easing, Pressable, StyleSheet, View} from 'react-native';
-import {Text} from 'react-native-paper';
+import {Text} from '@/components/AppText';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import MapView, {Marker, PROVIDER_GOOGLE} from 'react-native-maps';
 

@@ -61,7 +61,7 @@ def create_access_token(subject: str | UUID, **extra: Any) -> str:
     return _create_token(
         subject=subject,
         expires_delta=timedelta(minutes=settings.access_token_expire_minutes),
-        token_type="access",
+        token_type="access",  # noqa: S106 — token tipi, parola değil
         extra_claims=extra or None,
     )
 
@@ -71,7 +71,7 @@ def create_refresh_token(subject: str | UUID) -> str:
     return _create_token(
         subject=subject,
         expires_delta=timedelta(days=settings.refresh_token_expire_days),
-        token_type="refresh",
+        token_type="refresh",  # noqa: S106 — token tipi, parola değil
     )
 
 

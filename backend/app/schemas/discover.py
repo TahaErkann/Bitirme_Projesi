@@ -1,8 +1,9 @@
 """Keşfet (Discover) şemaları — feed, kategori, yakındakiler."""
 from __future__ import annotations
 
-from app.schemas.place import PlaceListItem
 from pydantic import BaseModel
+
+from app.schemas.place import PlaceListItem
 
 
 class DiscoverFeedResponse(BaseModel):

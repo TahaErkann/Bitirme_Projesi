@@ -3,7 +3,7 @@
  */
 import React from 'react';
 import {ActivityIndicator, StyleSheet, View} from 'react-native';
-import {Text} from 'react-native-paper';
+import {Text} from '@/components/AppText';
 import {colors, typography} from '@/utils/theme';
 
 interface Props {

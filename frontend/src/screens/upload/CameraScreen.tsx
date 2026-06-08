@@ -21,7 +21,7 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
-import {Text} from 'react-native-paper';
+import {Text} from '@/components/AppText';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {launchCamera, launchImageLibrary, Asset} from 'react-native-image-picker';
@@ -29,7 +29,7 @@ import {launchCamera, launchImageLibrary, Asset} from 'react-native-image-picker
 import {uploadImage} from '@/services/uploadService';
 import {extractErrorMessage} from '@/utils/helpers';
 import {useLanguage} from '@/context/LanguageContext';
-import {colors, radius, spacing, typography, shadow} from '@/utils/theme';
+import {colors, spacing, typography, shadow} from '@/utils/theme';
 import AppButton from '@/components/AppButton';
 import AppCard from '@/components/AppCard';
 import OrnamentalDivider from '@/components/OrnamentalDivider';
@@ -118,7 +118,7 @@ const CameraScreen: React.FC<{navigation: any}> = ({navigation}) => {
     const r = await launchImageLibrary({
       mediaType: 'photo',
       selectionLimit: 1,
-      quality: 0.85,
+      quality: 0.8,
     });
     if (r.didCancel) return;
     if (r.errorCode) {
@@ -141,7 +141,7 @@ const CameraScreen: React.FC<{navigation: any}> = ({navigation}) => {
     }
     const r = await launchCamera({
       mediaType: 'photo',
-      quality: 0.85,
+      quality: 0.8,
       saveToPhotos: false,
     });
     if (r.didCancel) return;

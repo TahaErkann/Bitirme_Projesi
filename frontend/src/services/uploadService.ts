@@ -20,12 +20,11 @@ export async function uploadImage(
 ): Promise<UploadResponse> {
   const form = new FormData();
   // RN multipart formdata: dosya {uri, name, type}
-  // @ts-expect-error - FormData için RN uzantısı
   form.append('image', {
     uri: localUri,
     name: localUri.split('/').pop() ?? 'photo.jpg',
     type: mimeType,
-  });
+  } as unknown as Blob);
 
   // Crop verilirse 4 alanı da forma ekle. Backend dördünü birden bekler;
   // birinin eksikliği crop'u tamamen yoksayar.

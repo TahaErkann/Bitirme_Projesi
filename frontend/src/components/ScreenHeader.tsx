@@ -5,7 +5,7 @@
  */
 import React, {useEffect, useRef} from 'react';
 import {Animated, Easing, Pressable, StyleProp, StyleSheet, View, ViewStyle} from 'react-native';
-import {Text} from 'react-native-paper';
+import {Text} from '@/components/AppText';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {colors, radius, spacing, typography} from '@/utils/theme';
 

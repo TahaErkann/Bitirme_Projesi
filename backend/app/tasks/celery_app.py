@@ -71,10 +71,11 @@ def enqueue_pipeline(
     olarak iletilir; OCR sadece bu bölgeyi görür.
     """
     # Lazy import — döngüsel bağımlılığı kır
-    from app.tasks.ocr_tasks import preprocess_image, run_ocr
-    from app.tasks.embedding_tasks import check_duplicate
-    from app.tasks.categorization_tasks import categorize_with_llm, save_results
     from ai_module.storage.minio_client import put_temp_object  # type: ignore
+
+    from app.tasks.categorization_tasks import categorize_with_llm, save_results
+    from app.tasks.embedding_tasks import check_duplicate
+    from app.tasks.ocr_tasks import preprocess_image, run_ocr
 
     # 1) MinIO temp/{upload_id} yaz
     put_temp_object(upload_id=upload_id, content=content, content_type=content_type)

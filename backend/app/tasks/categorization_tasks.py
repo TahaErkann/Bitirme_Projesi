@@ -40,8 +40,9 @@ def save_results(self, prev: dict[str, Any]) -> dict[str, Any]:
     """
     self.update_state(state="CATEGORIZING", meta={"progress": 93})
 
-    from app.core.config import settings
     from ai_module.storage.persistence import persist_pipeline_result  # type: ignore
+
+    from app.core.config import settings
 
     place_id, duplicate_of = asyncio.run(
         persist_pipeline_result(prev, similarity_threshold=settings.similarity_threshold)

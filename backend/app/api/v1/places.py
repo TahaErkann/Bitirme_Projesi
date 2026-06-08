@@ -89,7 +89,8 @@ async def enrich_place(
 
     if not enriched_text or not enriched_text.strip():
         # Boş cevabı cache'lemiyoruz → bir sonraki tıklama tekrar deneme yapar.
-        from fastapi import HTTPException, status as http_status
+        from fastapi import HTTPException
+        from fastapi import status as http_status
         raise HTTPException(
             status_code=http_status.HTTP_502_BAD_GATEWAY,
             detail="LLM enrichment boş cevap döndü, lütfen tekrar deneyin.",

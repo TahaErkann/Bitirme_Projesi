@@ -11,7 +11,7 @@
  */
 import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {Alert, Animated, Easing, StyleSheet, View} from 'react-native';
-import {Text} from 'react-native-paper';
+import {Text} from '@/components/AppText';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {SafeAreaView} from 'react-native-safe-area-context';
 
@@ -175,6 +175,7 @@ const UploadScreen: React.FC<{route: any; navigation: any}> = ({route, navigatio
       }, 400);
       return () => clearTimeout(timer);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, navigation, isVisuallyComplete]);
 
   const widthInterp = progressAnim.interpolate({

@@ -8,7 +8,8 @@ from __future__ import annotations
 from typing import Any, Generic, TypeVar
 from uuid import UUID
 
-from sqlalchemy import delete as sa_delete, select
+from sqlalchemy import delete as sa_delete
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.base import Base

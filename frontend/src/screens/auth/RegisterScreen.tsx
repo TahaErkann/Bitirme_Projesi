@@ -16,7 +16,7 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
-import {Text} from 'react-native-paper';
+import {Text} from '@/components/AppText';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {SafeAreaView} from 'react-native-safe-area-context';
 

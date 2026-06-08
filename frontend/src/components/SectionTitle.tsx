@@ -4,8 +4,8 @@
  */
 import React from 'react';
 import {Pressable, StyleProp, StyleSheet, View, ViewStyle} from 'react-native';
-import {Text} from 'react-native-paper';
-import {colors, spacing, typography} from '@/utils/theme';
+import {Text} from '@/components/AppText';
+import {colors, typography} from '@/utils/theme';
 
 interface Props {
   title: string;

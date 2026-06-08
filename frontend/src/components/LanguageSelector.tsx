@@ -4,7 +4,7 @@
  */
 import React from 'react';
 import {Pressable, ScrollView, StyleSheet, View} from 'react-native';
-import {Text} from 'react-native-paper';
+import {Text} from '@/components/AppText';
 
 import {LanguageCode, SUPPORTED_LANGUAGES} from '@/utils/constants';
 import {colors, radius, typography} from '@/utils/theme';

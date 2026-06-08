@@ -12,7 +12,7 @@ import {
   ViewStyle,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import {Text} from 'react-native-paper';
+import {Text} from '@/components/AppText';
 
 import {colors, radius, shadow, spacing, typography} from '@/utils/theme';
 

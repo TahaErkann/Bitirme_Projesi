@@ -36,7 +36,7 @@ async def _to_list_items(
                 primary_image_url=await repo.primary_image_url(p.id),
                 like_count=p.like_count,
                 view_count=p.view_count,
-                liked=True if liked else False,
+                liked=bool(liked),
                 created_at=p.created_at,
             )
         )

@@ -17,7 +17,7 @@ import {
 } from '@react-navigation/bottom-tabs';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import {Text} from 'react-native-paper';
+import {Text} from '@/components/AppText';
 
 import {useAuth} from '@/hooks/useAuth';
 import {useLanguage} from '@/context/LanguageContext';

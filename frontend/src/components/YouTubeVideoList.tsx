@@ -3,7 +3,7 @@
  */
 import React from 'react';
 import {Alert, Linking, Pressable, ScrollView, StyleSheet, View} from 'react-native';
-import {Text} from 'react-native-paper';
+import {Text} from '@/components/AppText';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import FastImage from 'react-native-fast-image';
 

@@ -22,7 +22,7 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
-import {Text} from 'react-native-paper';
+import {Text} from '@/components/AppText';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import FastImage from 'react-native-fast-image';
 import {SafeAreaView} from 'react-native-safe-area-context';
@@ -107,6 +107,7 @@ const ResultScreen: React.FC<{route: any; navigation: any}> = ({route, navigatio
     getVideos(placeId)
       .then(setVideos)
       .catch(() => undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [placeId]);
 
   // Dil değiştiğinde çeviri yenile
