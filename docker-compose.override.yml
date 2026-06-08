@@ -1,0 +1,36 @@
+# ==========================================================
+# TourLens — Geliştirme Ortamı Override
+# ----------------------------------------------------------
+# `docker compose up` çalıştırıldığında bu dosya OTOMATİK yüklenir.
+# Geliştirici makinesinde çalışırken kullanılması beklenen ayarlar:
+#   - Hot reload
+#   - Debug log seviyesi
+#   - API'nin nginx olmadan da erişilebilir olması (port forward)
+# ==========================================================
+
+services:
+  api:
+    environment:
+      - APP_ENV=development
+      - APP_DEBUG=true
+    command: >
+      uvicorn app.main:app
+      --host 0.0.0.0
+      --port 8000
+      --reload
+      --log-level debug
+
+  celery-worker:
+    environment:
+      - APP_ENV=development
+      - APP_DEBUG=true
+    command: >
+      celery -A app.tasks.celery_app worker
+      --loglevel=debug
+      --concurrency=2
+
+  # Geliştirmede Nginx'e gerek yok — API doğrudan http://localhost:8000 üzerinden
+  # erişilebilir. `production` profili açıkça belirtilmediği sürece başlatılmaz.
+  # Üretim simülasyonu için: docker compose --profile production up -d
+  nginx:
+    profiles: ["production"]

@@ -1,0 +1,201 @@
+# ==========================================================
+# TourLens — Docker Compose (Production-style)
+# Bitirme Projesi / Fırat Üniversitesi
+# ----------------------------------------------------------
+# Servisler:
+#   api            : FastAPI backend
+#   celery-worker  : Asenkron OCR/LLM/embedding pipeline
+#   postgres       : PostgreSQL 16 (PostGIS opsiyonel)
+#   redis          : Redis 7 (cache, broker, rate limit)
+#   milvus         : Milvus v2.4 (vektör DB)
+#   etcd           : Milvus bağımlılığı
+#   minio          : S3 uyumlu görsel deposu
+#   nginx          : Reverse proxy
+# ==========================================================
+
+services:
+  # ---------------------------- API ----------------------------
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: tourlens_api
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      milvus:
+        condition: service_started
+      minio:
+        condition: service_started
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - ./ai-module:/app/ai_module
+    networks:
+      - tourlens_net
+    command: >
+      uvicorn app.main:app
+      --host 0.0.0.0
+      --port 8000
+      --reload
+
+  # ----------------------- Celery Worker -----------------------
+  celery-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: tourlens_celery_worker
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      - redis
+      - postgres
+      - milvus
+      - minio
+    volumes:
+      - ./backend:/app
+      - ./ai-module:/app/ai_module
+    networks:
+      - tourlens_net
+    command: >
+      celery -A app.tasks.celery_app worker
+      --loglevel=info
+      --concurrency=${CELERY_WORKER_CONCURRENCY:-4}
+
+  # ------------------------- PostgreSQL ------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: tourlens_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/seed_data.sql:/docker-entrypoint-initdb.d/seed_data.sql:ro
+    networks:
+      - tourlens_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # --------------------------- Redis ---------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: tourlens_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - tourlens_net
+    command: ["redis-server", "--appendonly", "yes"]
+
+  # --------------------------- etcd (Milvus bağımlılığı) -------
+  etcd:
+    image: quay.io/coreos/etcd:v3.5.5
+    container_name: tourlens_etcd
+    restart: unless-stopped
+    environment:
+      - ETCD_AUTO_COMPACTION_MODE=revision
+      - ETCD_AUTO_COMPACTION_RETENTION=1000
+      - ETCD_QUOTA_BACKEND_BYTES=4294967296
+      - ETCD_SNAPSHOT_COUNT=50000
+    volumes:
+      - etcd_data:/etcd
+    command: >
+      etcd
+      -advertise-client-urls=http://127.0.0.1:2379
+      -listen-client-urls=http://0.0.0.0:2379
+      --data-dir /etcd
+    networks:
+      - tourlens_net
+
+  # -------------------------- Milvus ---------------------------
+  milvus:
+    image: milvusdb/milvus:v2.4.10
+    container_name: tourlens_milvus
+    restart: unless-stopped
+    environment:
+      ETCD_ENDPOINTS: etcd:2379
+      MINIO_ADDRESS: minio:9000
+      MINIO_ACCESS_KEY_ID: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_ACCESS_KEY: ${MINIO_SECRET_KEY}
+    depends_on:
+      - etcd
+      - minio
+    ports:
+      - "19530:19530"
+      - "9091:9091"
+    volumes:
+      - milvus_data:/var/lib/milvus
+    networks:
+      - tourlens_net
+    command: ["milvus", "run", "standalone"]
+
+  # --------------------------- MinIO ---------------------------
+  minio:
+    image: minio/minio:latest
+    container_name: tourlens_minio
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # Web Console
+    volumes:
+      - minio_data:/data
+    networks:
+      - tourlens_net
+    command: ["server", "/data", "--console-address", ":9001"]
+
+  # --------------------------- Nginx ---------------------------
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: tourlens_nginx
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    networks:
+      - tourlens_net
+
+# -------------------------------------------------------------
+# Volumes
+# -------------------------------------------------------------
+volumes:
+  postgres_data:
+  redis_data:
+  milvus_data:
+  etcd_data:
+  minio_data:
+
+# -------------------------------------------------------------
+# Network
+# -------------------------------------------------------------
+networks:
+  tourlens_net:
+    driver: bridge

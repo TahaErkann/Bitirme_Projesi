@@ -1,0 +1,11 @@
+node_modules/
+.metro-health-check*
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+ios/Pods/
+ios/build/
+.env
+*.log
+.DS_Store

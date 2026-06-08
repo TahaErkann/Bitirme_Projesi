@@ -1,0 +1,133 @@
+# --------------------------------------------------------------
+# TourLens .gitignore
+# Bitirme Projesi — Fırat Üniversitesi
+# --------------------------------------------------------------
+
+# Ortam değişkenleri (API key'ler asla commit edilmemeli)
+# NOT: gerçek .env dosyaları ASLA commit edilmez; ama *.env.example
+# ŞABLONLARI repoya dahildir (sır içermez, kurulumda kopyalanır).
+.env
+.env.local
+.env.production
+.env.*.local
+*.env
+!*.env.example
+!.env.example
+
+# Geliştirici/AI ajan rehberi — repoya dahil EDİLMEZ
+CLAUDE.md
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Virtualenv
+venv/
+env/
+.venv/
+ENV/
+
+# Node / React Native
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp.*
+.metro-health-check*
+.expo/
+
+# Android
+frontend/android/.gradle/
+frontend/android/build/
+frontend/android/app/build/
+frontend/android/app/.cxx/
+**/.cxx/
+*.hprof
+.kotlin/
+frontend/android/local.properties
+frontend/android/.idea/
+frontend/android/captures/
+frontend/android/app/release/
+*.keystore
+!debug.keystore
+frontend/android/app/google-services.json
+
+# iOS (gerekli olursa ileride)
+frontend/ios/Pods/
+frontend/ios/build/
+frontend/ios/*.xcworkspace
+frontend/ios/DerivedData/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Docker
+.docker/
+
+# Logs
+*.log
+logs/
+
+# Database
+*.sqlite3
+*.db
+
+# MinIO veri klasörleri (lokal test)
+minio_data/
+postgres_data/
+redis_data/
+milvus_data/
+etcd_data/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Test artefaktları
+.coverage.*
+coverage.xml
+*.cover
+.hypothesis/
+
+# OS
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Geçici
+tmp/
+temp/
+*.tmp
+
+# Geliştirici notları (kişisel)
+notes.local.md
+TODO.local.md
