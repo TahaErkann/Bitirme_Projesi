@@ -17,7 +17,7 @@ import requests
 
 from ai_module.ocr.base_provider import BaseOCRProvider, OCRResultDict
 
-logger = logging.getLogger("tourlens.ocr.google_vision")
+logger = logging.getLogger("jourex.ocr.google_vision")
 
 VISION_ENDPOINT = "https://vision.googleapis.com/v1/images:annotate"
 

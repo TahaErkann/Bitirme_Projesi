@@ -1,5 +1,5 @@
 # ==========================================================
-# TourLens — Docker Compose (Production-style)
+# JourEx — Docker Compose (Production-style)
 # Bitirme Projesi / Fırat Üniversitesi
 # ----------------------------------------------------------
 # Servisler:
@@ -19,7 +19,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: tourlens_api
+    container_name: jourex_api
     restart: unless-stopped
     env_file:
       - .env
@@ -40,7 +40,7 @@ services:
       - ./backend:/app
       - ./ai-module:/app/ai_module
     networks:
-      - tourlens_net
+      - jourex_net
     command: >
       uvicorn app.main:app
       --host 0.0.0.0
@@ -52,7 +52,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: tourlens_celery_worker
+    container_name: jourex_celery_worker
     restart: unless-stopped
     env_file:
       - .env
@@ -67,7 +67,7 @@ services:
       - ./backend:/app
       - ./ai-module:/app/ai_module
     networks:
-      - tourlens_net
+      - jourex_net
     command: >
       celery -A app.tasks.celery_app worker
       --loglevel=info
@@ -76,7 +76,7 @@ services:
   # ------------------------- PostgreSQL ------------------------
   postgres:
     image: postgres:16-alpine
-    container_name: tourlens_postgres
+    container_name: jourex_postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -88,7 +88,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./database/seed_data.sql:/docker-entrypoint-initdb.d/seed_data.sql:ro
     networks:
-      - tourlens_net
+      - jourex_net
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
@@ -98,20 +98,20 @@ services:
   # --------------------------- Redis ---------------------------
   redis:
     image: redis:7-alpine
-    container_name: tourlens_redis
+    container_name: jourex_redis
     restart: unless-stopped
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
     networks:
-      - tourlens_net
+      - jourex_net
     command: ["redis-server", "--appendonly", "yes"]
 
   # --------------------------- etcd (Milvus bağımlılığı) -------
   etcd:
     image: quay.io/coreos/etcd:v3.5.5
-    container_name: tourlens_etcd
+    container_name: jourex_etcd
     restart: unless-stopped
     environment:
       - ETCD_AUTO_COMPACTION_MODE=revision
@@ -126,12 +126,12 @@ services:
       -listen-client-urls=http://0.0.0.0:2379
       --data-dir /etcd
     networks:
-      - tourlens_net
+      - jourex_net
 
   # -------------------------- Milvus ---------------------------
   milvus:
     image: milvusdb/milvus:v2.4.10
-    container_name: tourlens_milvus
+    container_name: jourex_milvus
     restart: unless-stopped
     environment:
       ETCD_ENDPOINTS: etcd:2379
@@ -147,13 +147,13 @@ services:
     volumes:
       - milvus_data:/var/lib/milvus
     networks:
-      - tourlens_net
+      - jourex_net
     command: ["milvus", "run", "standalone"]
 
   # --------------------------- MinIO ---------------------------
   minio:
     image: minio/minio:latest
-    container_name: tourlens_minio
+    container_name: jourex_minio
     restart: unless-stopped
     environment:
       MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
@@ -164,13 +164,13 @@ services:
     volumes:
       - minio_data:/data
     networks:
-      - tourlens_net
+      - jourex_net
     command: ["server", "/data", "--console-address", ":9001"]
 
   # --------------------------- Nginx ---------------------------
   nginx:
     image: nginx:1.27-alpine
-    container_name: tourlens_nginx
+    container_name: jourex_nginx
     restart: unless-stopped
     depends_on:
       - api
@@ -181,7 +181,7 @@ services:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/ssl:/etc/nginx/ssl:ro
     networks:
-      - tourlens_net
+      - jourex_net
 
 # -------------------------------------------------------------
 # Volumes
@@ -197,5 +197,5 @@ volumes:
 # Network
 # -------------------------------------------------------------
 networks:
-  tourlens_net:
+  jourex_net:
     driver: bridge

@@ -7,7 +7,7 @@ src = ["app", "tests"]
 select = ["E", "F", "W", "I", "B", "UP", "N", "S", "C4", "PIE", "RET", "SIM"]
 # B008: FastAPI Depends() varsayılanları · S101: assert (testler) · N805: pydantic validator self
 # E501: satır uzunluğu (biçimlendirici işi) · N818: domain exception adlandırma konvansiyonu
-# (TourLensException bilinçli) · S110: bilinçli best-effort try/except/pass (cache ısıtma)
+# (JourExException bilinçli) · S110: bilinçli best-effort try/except/pass (cache ısıtma)
 ignore = ["B008", "S101", "N805", "E501", "N818", "S110"]
 
 [tool.ruff.lint.per-file-ignores]

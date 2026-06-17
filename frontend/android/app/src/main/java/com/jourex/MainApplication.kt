@@ -1,4 +1,4 @@
-package com.tourlens
+package com.jourex
 
 import android.app.Application
 import com.facebook.react.PackageList

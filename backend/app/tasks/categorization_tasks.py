@@ -7,7 +7,7 @@ from typing import Any
 
 from app.tasks.celery_app import celery_app
 
-logger = logging.getLogger("tourlens.tasks.categorization")
+logger = logging.getLogger("jourex.tasks.categorization")
 
 
 @celery_app.task(bind=True, name="tasks.categorize_with_llm")

@@ -7,7 +7,7 @@ import httpx
 
 from ai_module.translation.base_provider import BaseTranslationProvider
 
-logger = logging.getLogger("tourlens.translation.google")
+logger = logging.getLogger("jourex.translation.google")
 
 GOOGLE_V2_URL = "https://translation.googleapis.com/language/translate/v2"
 

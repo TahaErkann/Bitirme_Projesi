@@ -24,7 +24,7 @@ from typing import Any
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
-logger = logging.getLogger("tourlens.persistence")
+logger = logging.getLogger("jourex.persistence")
 
 
 def _normalize_name(name: str | None) -> str:

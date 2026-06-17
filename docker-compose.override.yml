@@ -1,5 +1,5 @@
 # ==========================================================
-# TourLens — Geliştirme Ortamı Override
+# JourEx — Geliştirme Ortamı Override
 # ----------------------------------------------------------
 # `docker compose up` çalıştırıldığında bu dosya OTOMATİK yüklenir.
 # Geliştirici makinesinde çalışırken kullanılması beklenen ayarlar:

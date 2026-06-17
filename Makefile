@@ -1,5 +1,5 @@
 # ==========================================================
-# TourLens — Makefile (kısayol komutları)
+# JourEx — Makefile (kısayol komutları)
 # ==========================================================
 
 .PHONY: help up down build logs restart ps \
@@ -9,7 +9,7 @@
         clean
 
 help: ## Bu yardımı göster
-	@echo "TourLens — Kullanılabilir komutlar:"
+	@echo "JourEx — Kullanılabilir komutlar:"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
 
 # --------------------- Docker Compose ---------------------
@@ -42,7 +42,7 @@ shell-api: ## API container'ında bash aç
 	docker compose exec api bash
 
 shell-db: ## PostgreSQL psql shell
-	docker compose exec postgres psql -U $${POSTGRES_USER:-tourlens_user} -d $${POSTGRES_DB:-tourlens}
+	docker compose exec postgres psql -U $${POSTGRES_USER:-jourex_user} -d $${POSTGRES_DB:-jourex}
 
 # --------------------- Test & Kalite ----------------------
 test: ## Backend testlerini çalıştır

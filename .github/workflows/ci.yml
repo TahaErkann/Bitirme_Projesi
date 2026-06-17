@@ -1,5 +1,5 @@
 # ==========================================================
-# TourLens CI/CD — GitHub Actions
+# JourEx CI/CD — GitHub Actions
 # Backend (FastAPI) + Frontend (RN CLI) lint & test
 # ==========================================================
 
@@ -22,9 +22,9 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_USER: tourlens_user
-          POSTGRES_PASSWORD: tourlens_pass
-          POSTGRES_DB: tourlens_test
+          POSTGRES_USER: jourex_user
+          POSTGRES_PASSWORD: jourex_pass
+          POSTGRES_DB: jourex_test
         ports: ["5432:5432"]
         options: >-
           --health-cmd pg_isready
@@ -59,7 +59,7 @@ jobs:
       - name: Test (pytest)
         working-directory: backend
         env:
-          DATABASE_URL: postgresql+asyncpg://tourlens_user:tourlens_pass@localhost:5432/tourlens_test
+          DATABASE_URL: postgresql+asyncpg://jourex_user:jourex_pass@localhost:5432/jourex_test
           REDIS_URL: redis://localhost:6379/0
           JWT_SECRET_KEY: ci_test_secret_key_must_be_at_least_64_characters_long_xxxxxxxxxxxxxx
           APP_ENV: testing

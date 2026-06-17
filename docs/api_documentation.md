@@ -1,4 +1,4 @@
-# TourLens API — Geliştirici Notları
+# JourEx API — Geliştirici Notları
 
 Tam OpenAPI dokümanı: `http://localhost:8000/docs` (Swagger UI) / `http://localhost:8000/redoc`.
 

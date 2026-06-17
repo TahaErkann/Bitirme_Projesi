@@ -22,7 +22,7 @@ from app.repositories.translation_repository import TranslationRepository
 from app.schemas.place import TranslationResponse
 from app.schemas.translation import SUPPORTED_LANGUAGES
 
-logger = logging.getLogger("tourlens.translation")
+logger = logging.getLogger("jourex.translation")
 
 
 class TranslationService:

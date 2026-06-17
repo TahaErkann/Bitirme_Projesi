@@ -10,7 +10,7 @@ from typing import Any
 
 from app.tasks.celery_app import celery_app
 
-logger = logging.getLogger("tourlens.tasks.ocr")
+logger = logging.getLogger("jourex.tasks.ocr")
 
 
 @celery_app.task(bind=True, name="tasks.preprocess_image")

@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-logger = logging.getLogger("tourlens.llm.categorizer")
+logger = logging.getLogger("jourex.llm.categorizer")
 
 
 def categorize_with_fallback(ocr_text: str) -> dict[str, Any]:

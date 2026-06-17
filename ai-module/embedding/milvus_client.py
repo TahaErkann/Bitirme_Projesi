@@ -17,7 +17,7 @@ from typing import Any
 
 import numpy as np
 
-logger = logging.getLogger("tourlens.milvus")
+logger = logging.getLogger("jourex.milvus")
 
 
 @lru_cache(maxsize=1)
@@ -42,7 +42,7 @@ def _connect_and_ensure_collection():
             FieldSchema(name="embedding", dtype=DataType.FLOAT_VECTOR, dim=settings.embedding_dim),
             FieldSchema(name="text_hash", dtype=DataType.VARCHAR, max_length=64),
         ]
-        schema = CollectionSchema(fields, description="TourLens place embeddings")
+        schema = CollectionSchema(fields, description="JourEx place embeddings")
         coll = Collection(name=settings.milvus_collection_name, schema=schema)
         coll.create_index(
             field_name="embedding",

@@ -1,6 +1,6 @@
 """MinIO yardımcıları — temp + originals + thumbnails (§ 4.3).
 
-Bucket: tourlens-images
+Bucket: jourex-images
 Path:
   - originals/{place_id}/{image_id}.jpg
   - thumbnails/{place_id}/{image_id}.jpg
@@ -17,7 +17,7 @@ from minio.error import S3Error  # type: ignore
 
 from app.core.config import settings  # type: ignore
 
-logger = logging.getLogger("tourlens.storage.minio")
+logger = logging.getLogger("jourex.storage.minio")
 
 
 @lru_cache(maxsize=1)

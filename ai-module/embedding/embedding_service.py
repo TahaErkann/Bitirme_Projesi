@@ -7,7 +7,7 @@ from functools import lru_cache
 
 import numpy as np
 
-logger = logging.getLogger("tourlens.embedding")
+logger = logging.getLogger("jourex.embedding")
 
 _LOAD_LOCK = threading.Lock()
 

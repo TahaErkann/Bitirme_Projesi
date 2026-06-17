@@ -1,5 +1,5 @@
 -- ==========================================================
--- TourLens — Başlangıç (seed) verileri
+-- JourEx — Başlangıç (seed) verileri
 -- ==========================================================
 -- docker-compose: bu dosya postgres servisinin /docker-entrypoint-initdb.d/
 -- klasörüne mount edilir; tablolar Alembic tarafından üretilir, bu dosya

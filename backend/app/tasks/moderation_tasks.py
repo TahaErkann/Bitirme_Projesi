@@ -17,7 +17,7 @@ from typing import Any
 
 from app.tasks.celery_app import celery_app
 
-logger = logging.getLogger("tourlens.tasks.moderation")
+logger = logging.getLogger("jourex.tasks.moderation")
 
 
 @celery_app.task(bind=True, name="tasks.moderate_content")

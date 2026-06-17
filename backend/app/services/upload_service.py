@@ -19,7 +19,7 @@ from app.core.config import settings
 from app.core.exceptions import FileTooLargeException, InvalidImageException
 from app.schemas.upload import UploadResponse
 
-logger = logging.getLogger("tourlens.upload")
+logger = logging.getLogger("jourex.upload")
 
 
 class UploadService:

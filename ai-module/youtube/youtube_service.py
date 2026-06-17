@@ -9,7 +9,7 @@ import redis.asyncio as redis
 
 from app.core.config import settings  # type: ignore
 
-logger = logging.getLogger("tourlens.youtube")
+logger = logging.getLogger("jourex.youtube")
 
 SEARCH_URL = "https://www.googleapis.com/youtube/v3/search"
 

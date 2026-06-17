@@ -1,4 +1,4 @@
-package com.tourlens
+package com.jourex
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate

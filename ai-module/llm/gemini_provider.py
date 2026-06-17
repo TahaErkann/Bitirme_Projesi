@@ -8,7 +8,7 @@ from typing import Any
 from ai_module.llm.base_provider import CategorizationProvider, EnrichmentProvider
 from ai_module.llm.groq_provider import CATEGORIZATION_SYSTEM_PROMPT
 
-logger = logging.getLogger("tourlens.llm.gemini")
+logger = logging.getLogger("jourex.llm.gemini")
 
 # Not: System prompt İngilizce yazıldı; "answer in {target_lang_name}" talimatı
 # bu sayede prompt dilinden bağımsız olarak güvenilir biçimde uygulanıyor.

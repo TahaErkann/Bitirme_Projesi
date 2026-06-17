@@ -1,5 +1,5 @@
 # ==========================================================
-# TourLens Backend — Dockerfile (FastAPI + Celery worker ortak)
+# JourEx Backend — Dockerfile (FastAPI + Celery worker ortak)
 # ==========================================================
 
 FROM python:3.11-slim AS base

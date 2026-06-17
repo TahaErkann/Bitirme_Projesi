@@ -29,7 +29,7 @@ import logging
 
 from PIL import Image
 
-logger = logging.getLogger("tourlens.ocr.preprocessor")
+logger = logging.getLogger("jourex.ocr.preprocessor")
 
 MAX_DIM = 4096
 JPEG_QUALITY = 95

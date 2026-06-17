@@ -16,11 +16,6 @@ denetler**, yeri sınıflandırır, 12 dile çevirir, sesli okur ve isteğe bağ
 olarak kaynak gösterimli ayrıntılı bir anlatım üretir. Kabul edilen yerler bir
 topluluk keşif akışında paylaşılır.
 
-> ℹ️ Bu proje daha önce **TourLens** adıyla geliştirilmiştir; **JourEx**'e
-> yeniden adlandırılmıştır. Bazı backend içi tanımlayıcılar ve Docker container
-> adları (örn. `tourlens_api`, Android paket adı `com.tourlens`) geriye dönük
-> uyumluluk için eski adı korur; bunun işlevsel bir etkisi yoktur.
-
 ---
 
 ## ✨ Öne Çıkan Özellikler
@@ -151,7 +146,7 @@ Ardından **`.env`** içindeki şu değerleri doldur:
 
 | Değişken | Nereden alınır |
 |---|---|
-| `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | Sen belirle (örn. `tourlens_user` / güçlü bir şifre / `tourlens`) |
+| `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | Sen belirle (örn. `jourex_user` / güçlü bir şifre / `jourex`) |
 | `DATABASE_URL` | Yukarıdaki kullanıcı/şifre/db ile aynı olmalı: `postgresql+asyncpg://<user>:<pass>@postgres:5432/<db>` |
 | `JWT_SECRET_KEY` | `openssl rand -hex 64` |
 | `MINIO_ACCESS_KEY` / `MINIO_SECRET_KEY` | Sen belirle |
@@ -206,7 +201,7 @@ Harita gri kalıp sadece "Google" logosu görünüyorsa sorun **her zaman Google
 Cloud Console** tarafındadır. Şunları yap:
 1. **Maps SDK for Android** API'sini etkinleştir.
 2. Projeye **Billing (faturalandırma)** bağla — Maps ücretsiz kotada bile zorunlu kılar.
-3. API anahtarını **Android apps** kısıtlamasına al: paket adı `com.tourlens`
+3. API anahtarını **Android apps** kısıtlamasına al: paket adı `com.jourex`
    + uygulamanın imza **SHA-1** parmak izi.
 
 > 🔑 **SHA-1 tuzağı:** Bu proje, debug imzası için **kendi** keystore'unu
@@ -328,11 +323,11 @@ veren açık tema. Tasarım token'ları [`frontend/src/utils/theme.ts`](frontend
 
 | Belirti | Çözüm |
 |---|---|
-| Harita gri / sadece "Google" logosu | Maps SDK + Billing etkin mi? API key kısıtlamasına `com.tourlens` + **proje** keystore SHA-1 eklendi mi? (Kurulum §5) |
+| Harita gri / sadece "Google" logosu | Maps SDK + Billing etkin mi? API key kısıtlamasına `com.jourex` + **proje** keystore SHA-1 eklendi mi? (Kurulum §5) |
 | Görsel sürekli "kabul edilmedi" diyor | İçerik moderasyonu çok katı olabilir; `.env`'de `MODERATION_MIN_TEXT_CHARS`'ı artır / `MODERATION_SAFE_SEARCH_BLOCK=VERY_LIKELY` yap ya da `MODERATION_ENABLED=false`. Değişiklik sonrası `docker compose up -d` (recreate). |
 | "Daha Fazla Bilgi" 502 | Gemini kotası bitmiş olabilir; provider Groq'a düşer. `.env` değişikliğinden sonra `docker compose up -d` (recreate) gerekir. |
 | Tab/ikon yerine garip karakter | `react-native-vector-icons` fontları için temiz build: `cd frontend/android && ./gradlew clean` |
-| Pipeline "Görsel yükleniyor"da takılı | `docker logs tourlens_celery_worker` — embedding modeli image'a gömülüdür; sorun sürerse worker'ı yeniden başlat. |
+| Pipeline "Görsel yükleniyor"da takılı | `docker logs jourex_celery_worker` — embedding modeli image'a gömülüdür; sorun sürerse worker'ı yeniden başlat. |
 | `.env` değişikliği yansımıyor | `docker compose up -d` (gerekirse `--force-recreate`). `restart` env'i yeniden okumaz. |
 | Backend pipeline/prompt değişikliği yansımıyor | `docker compose restart api celery-worker` (moderasyon/kategorizasyon worker'da çalışır). |
 

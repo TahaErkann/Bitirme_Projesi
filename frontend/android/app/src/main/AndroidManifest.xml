@@ -65,7 +65,7 @@
             HER ZAMAN Google Cloud Console tarafındadır:
               1) "Maps SDK for Android" API'si etkin mi?
               2) Billing (faturalandırma) projede etkin mi?
-              3) API key'de paket-adı kısıtlaması varsa "com.tourlens" +
+              3) API key'de paket-adı kısıtlaması varsa "com.jourex" +
                  doğru SHA-1 fingerprint eklenmiş mi?
               4) API key'de "Maps SDK for Android" ürünü seçili mi?
             Bu üçünden biri eksikse harita render edilmez.

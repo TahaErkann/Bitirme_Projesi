@@ -17,7 +17,7 @@ import httpx
 
 from app.core.config import settings
 
-logger = logging.getLogger("tourlens.geocoding")
+logger = logging.getLogger("jourex.geocoding")
 
 _GEOCODE_URL = "https://maps.googleapis.com/maps/api/geocode/json"
 

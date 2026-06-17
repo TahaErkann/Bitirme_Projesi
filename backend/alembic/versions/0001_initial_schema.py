@@ -1,4 +1,4 @@
-"""initial schema — TourLens master prompt § 4.1
+"""initial schema — JourEx master prompt § 4.1
 
 Revision ID: 0001_initial_schema
 Revises:

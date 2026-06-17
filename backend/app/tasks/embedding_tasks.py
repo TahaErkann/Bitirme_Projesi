@@ -6,7 +6,7 @@ from typing import Any
 
 from app.tasks.celery_app import celery_app
 
-logger = logging.getLogger("tourlens.tasks.embedding")
+logger = logging.getLogger("jourex.tasks.embedding")
 
 
 @celery_app.task(bind=True, name="tasks.check_duplicate")

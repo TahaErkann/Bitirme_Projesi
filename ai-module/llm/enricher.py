@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import logging
 
-logger = logging.getLogger("tourlens.llm.enricher")
+logger = logging.getLogger("jourex.llm.enricher")
 
 
 async def enrich_with_fallback(

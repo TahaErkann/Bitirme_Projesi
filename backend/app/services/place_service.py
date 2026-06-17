@@ -25,7 +25,7 @@ from app.schemas.place import (
     VideosResponse,
 )
 
-logger = logging.getLogger("tourlens.place")
+logger = logging.getLogger("jourex.place")
 
 
 class PlaceService:

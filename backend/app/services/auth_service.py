@@ -32,7 +32,7 @@ from app.schemas.auth import (
     UserPublic,
 )
 
-logger = logging.getLogger("tourlens.auth")
+logger = logging.getLogger("jourex.auth")
 
 
 class AuthService:

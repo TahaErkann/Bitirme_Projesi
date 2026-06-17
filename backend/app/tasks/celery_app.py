@@ -23,11 +23,11 @@ from celery.result import AsyncResult
 from app.core.config import settings
 from app.schemas.upload import UploadStatusResponse
 
-logger = logging.getLogger("tourlens.celery")
+logger = logging.getLogger("jourex.celery")
 
 # Celery instance
 celery_app = Celery(
-    "tourlens",
+    "jourex",
     broker=settings.celery_broker_url,
     backend=settings.celery_result_backend,
     include=[

@@ -1,4 +1,4 @@
-# TourLens — Sistem Mimarisi
+# JourEx — Sistem Mimarisi
 
 > `system_architecture.png` ileride üretilecektir; bu dosya geçici metinsel diyagramdır.
 

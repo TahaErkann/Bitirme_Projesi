@@ -8,10 +8,10 @@ from __future__ import annotations
 from typing import Any
 
 
-class TourLensException(Exception):
-    """TourLens domain hatalarının üst sınıfı."""
+class JourExException(Exception):
+    """JourEx domain hatalarının üst sınıfı."""
 
-    code: str = "tourlens_error"
+    code: str = "jourex_error"
     status_code: int = 500
     message: str = "Beklenmeyen bir hata oluştu."
 
@@ -30,69 +30,69 @@ class TourLensException(Exception):
 
 
 # ------------------- Auth -------------------
-class AuthenticationException(TourLensException):
+class AuthenticationException(JourExException):
     code = "authentication_failed"
     status_code = 401
     message = "Kimlik doğrulama başarısız."
 
 
-class AuthorizationException(TourLensException):
+class AuthorizationException(JourExException):
     code = "authorization_failed"
     status_code = 403
     message = "Bu işlem için yetkiniz yok."
 
 
-class UserAlreadyExistsException(TourLensException):
+class UserAlreadyExistsException(JourExException):
     code = "user_already_exists"
     status_code = 409
     message = "Bu e-posta ile zaten bir kullanıcı kayıtlı."
 
 
-class InvalidCredentialsException(TourLensException):
+class InvalidCredentialsException(JourExException):
     code = "invalid_credentials"
     status_code = 401
     message = "E-posta veya şifre hatalı."
 
 
 # ------------------- Upload / Görsel -------------------
-class InvalidImageException(TourLensException):
+class InvalidImageException(JourExException):
     code = "invalid_image"
     status_code = 400
     message = "Geçersiz veya desteklenmeyen görsel."
 
 
-class FileTooLargeException(TourLensException):
+class FileTooLargeException(JourExException):
     code = "file_too_large"
     status_code = 413
     message = "Yüklenen dosya boyut sınırını aştı."
 
 
 # ------------------- OCR / AI Pipeline -------------------
-class OCRException(TourLensException):
+class OCRException(JourExException):
     code = "ocr_failed"
     status_code = 502
     message = "OCR işlemi başarısız oldu."
 
 
-class LLMException(TourLensException):
+class LLMException(JourExException):
     code = "llm_failed"
     status_code = 502
     message = "LLM çağrısı başarısız oldu."
 
 
-class TranslationException(TourLensException):
+class TranslationException(JourExException):
     code = "translation_failed"
     status_code = 502
     message = "Çeviri başarısız oldu."
 
 
-class EmbeddingException(TourLensException):
+class EmbeddingException(JourExException):
     code = "embedding_failed"
     status_code = 502
     message = "Embedding üretilemedi."
 
 
-class DuplicateDetectedException(TourLensException):
+class DuplicateDetectedException(JourExException):
     """Mükerrer kayıt tespit edildiğinde fırlatılır.
 
     Bu bir hata DEĞİL, kontrollü bir akış işaretidir; ama HTTP 409 ile
@@ -105,7 +105,7 @@ class DuplicateDetectedException(TourLensException):
 
 
 # ------------------- Kaynak -------------------
-class ResourceNotFoundException(TourLensException):
+class ResourceNotFoundException(JourExException):
     code = "resource_not_found"
     status_code = 404
     message = "İstenen kaynak bulunamadı."

@@ -9,7 +9,7 @@ import httpx
 
 from ai_module.llm.base_provider import CategorizationProvider
 
-logger = logging.getLogger("tourlens.llm.groq")
+logger = logging.getLogger("jourex.llm.groq")
 
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 

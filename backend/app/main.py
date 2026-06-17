@@ -1,4 +1,4 @@
-"""TourLens FastAPI uygulamasının giriş noktası.
+"""JourEx FastAPI uygulamasının giriş noktası.
 
 Bu dosya:
 - FastAPI app instance'ını oluşturur
@@ -20,9 +20,9 @@ from slowapi.util import get_remote_address
 
 from app.api.v1.router import api_router
 from app.core.config import settings
-from app.core.exceptions import TourLensException
+from app.core.exceptions import JourExException
 
-logger = logging.getLogger("tourlens")
+logger = logging.getLogger("jourex")
 logging.basicConfig(level=logging.DEBUG if settings.app_debug else logging.INFO)
 
 
@@ -36,11 +36,11 @@ async def lifespan(app: FastAPI):
     Burada DB engine kontrolü, Milvus bağlantısı, MinIO bucket
     hazırlama gibi tek seferlik kurulumlar yapılır.
     """
-    logger.info("TourLens API başlıyor — env=%s", settings.app_env)
+    logger.info("JourEx API başlıyor — env=%s", settings.app_env)
     # Burada uygulamaya özel ısıtma adımları çağrılabilir.
     # Örn: await ensure_minio_bucket(), milvus.ensure_collection()
     yield
-    logger.info("TourLens API kapanıyor.")
+    logger.info("JourEx API kapanıyor.")
 
 
 # ----------------------------------------------------------
@@ -51,7 +51,7 @@ limiter = Limiter(key_func=get_remote_address, default_limits=[f"{settings.rate_
 app = FastAPI(
     title=settings.app_name,
     version="0.1.0",
-    description="TourLens — AI destekli turist bilgi platformu (Bitirme Projesi)",
+    description="JourEx — AI destekli turist bilgi platformu (Bitirme Projesi)",
     docs_url="/docs",
     redoc_url="/redoc",
     openapi_url=f"{settings.api_v1_prefix}/openapi.json",
@@ -75,8 +75,8 @@ app.add_middleware(
 # ----------------------------------------------------------
 # Hata yakalama
 # ----------------------------------------------------------
-@app.exception_handler(TourLensException)
-async def tourlens_exception_handler(request: Request, exc: TourLensException):
+@app.exception_handler(JourExException)
+async def jourex_exception_handler(request: Request, exc: JourExException):
     """Tüm domain hatalarını standart formatta JSON'a çevirir."""
     return JSONResponse(
         status_code=exc.status_code,

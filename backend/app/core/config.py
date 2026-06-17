@@ -12,7 +12,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    """TourLens uygulama ayarları.
+    """JourEx uygulama ayarları.
 
     Tüm değerler .env veya OS environment'tan okunur.
     """
@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     )
 
     # ---------------- Genel ----------------
-    app_name: str = Field(default="TourLens")
+    app_name: str = Field(default="JourEx")
     app_env: str = Field(default="development")
     app_debug: bool = Field(default=True)
     api_v1_prefix: str = Field(default="/api/v1")
@@ -33,7 +33,7 @@ class Settings(BaseSettings):
 
     # ---------------- PostgreSQL ----------------
     database_url: str = Field(
-        default="postgresql+asyncpg://tourlens_user:tourlens_pass@localhost:5432/tourlens"
+        default="postgresql+asyncpg://jourex_user:jourex_pass@localhost:5432/jourex"
     )
 
     # ---------------- Redis / Celery ----------------
@@ -54,7 +54,7 @@ class Settings(BaseSettings):
     minio_endpoint: str = "localhost:9000"
     minio_access_key: str = "minioadmin"
     minio_secret_key: str = "minioadmin"
-    minio_bucket: str = "tourlens-images"
+    minio_bucket: str = "jourex-images"
     minio_use_ssl: bool = False
     minio_public_url: str = "http://localhost:9000"
 
