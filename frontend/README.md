@@ -1,4 +1,4 @@
-# TourLens — Frontend (React Native CLI)
+# JourEx — Frontend (React Native CLI)
 
 Bu klasör, master prompt § 2.1'e göre **React Native CLI bare workflow** ile oluşturulmuş frontend uygulamasını içerir.
 
@@ -9,12 +9,12 @@ Bu klasör, master prompt § 2.1'e göre **React Native CLI bare workflow** ile 
 ```bash
 cd C:\Users\owner\Desktop\Bitirme_App
 # Geçici bir konuma RN iskeleti üret:
-npx --yes @react-native-community/cli@latest init TourLensTemp --version 0.76.5 --skip-install --pm npm
+npx --yes @react-native-community/cli@latest init JourExTemp --version 0.76.5 --skip-install --pm npm
 
 # Sadece android, ios, gradle dosyalarını kopyala:
-mv TourLensTemp/android frontend/android
+mv JourExTemp/android frontend/android
 # (Android-only ilerleyeceğiz, iOS opsiyonel)
-rm -rf TourLensTemp
+rm -rf JourExTemp
 ```
 
 Alternatif: Repo'yu zaten init edilmiş şekilde sürdürmek için bu adımı bir kez yapın ve `frontend/android/` klasörünü commit'leyin.

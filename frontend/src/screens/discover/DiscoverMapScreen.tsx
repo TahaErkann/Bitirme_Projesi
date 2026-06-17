@@ -243,7 +243,7 @@ const MapTimeoutHint: React.FC<{ready: boolean}> = ({ready}) => {
       <View style={styles.hintIconWrap}>
         <Icon name="map" size={30} color={colors.accent} />
       </View>
-      <Text style={styles.hintOverline}>TOURLENS</Text>
+      <Text style={styles.hintOverline}>JOUREX</Text>
       <Text
         style={[
           typography.h2,

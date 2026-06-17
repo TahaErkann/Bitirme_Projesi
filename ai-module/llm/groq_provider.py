@@ -1,4 +1,4 @@
-"""Groq API (Llama 3.3 70B) — kategorizasyon için (§ 6.2)."""
+"""Groq API (openai/gpt-oss-120b) — kategorizasyon + içerik moderasyonu için (§ 6.2)."""
 from __future__ import annotations
 
 import json

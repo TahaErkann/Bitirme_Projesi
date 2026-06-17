@@ -1,5 +1,5 @@
 /**
- * TourLens — uygulama kök bileşeni.
+ * JourEx — uygulama kök bileşeni.
  * Sıralama (önemli):
  *   GestureHandlerRootView → SafeAreaProvider → QueryClientProvider
  *   → PaperProvider → LanguageProvider → AuthProvider → AppNavigator

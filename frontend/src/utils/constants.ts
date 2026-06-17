@@ -26,10 +26,10 @@ export const SUPPORTED_LANGUAGES = [
 export type LanguageCode = (typeof SUPPORTED_LANGUAGES)[number]['code'];
 
 // JWT secure storage anahtarları
-export const KEYCHAIN_SERVICE = 'tourlens.auth';
+export const KEYCHAIN_SERVICE = 'jourex.auth';
 
 // Tercih edilen dil için AsyncStorage anahtarı
-export const LANGUAGE_STORAGE_KEY = 'tourlens.language';
+export const LANGUAGE_STORAGE_KEY = 'jourex.language';
 
 // Polling
 export const UPLOAD_POLL_INTERVAL_MS = 1500;

@@ -1,29 +1,44 @@
-# TourLens
+# JourEx
 
 **AI Destekli Turist Bilgi & Keşif Platformu**
 
 > Bitirme Projesi — Fırat Üniversitesi / Teknoloji Fakültesi / Yazılım Mühendisliği
 
-TourLens, turistlerin **tarihi/turistik tabela, anıt, yapı ve şahsiyet
-fotoğraflarını** yükleyerek; **OCR → akıllı kategorizasyon (LLM) → vektör
-tabanlı mükerrer tespiti → 12 dilde çeviri → "Daha Fazla Bilgi"
-zenginleştirmesi → keşfet feed'i** akışıyla bilgiye anlık erişim sağladığı
-yapay zekâ destekli bir Android uygulamasıdır.
+**JourEx** (*Journey* + *Exploration*), turistlerin **tarihi/turistik tabela,
+anıt, yapı ve şahsiyet fotoğraflarını** yükleyerek; **OCR → içerik moderasyonu →
+akıllı kategorizasyon (LLM) → vektör tabanlı mükerrer tespiti → 12 dilde çeviri →
+"Daha Fazla Bilgi" zenginleştirmesi → keşfet feed'i** akışıyla bilgiye anlık
+erişim sağladığı yapay zekâ destekli bir Android uygulamasıdır.
+
+Tek bir tabela fotoğrafından yola çıkarak; görseldeki yazıyı yapay zekâ okur,
+**içeriğin gerçekten tarihi/turistik bir tabela olup olmadığını otomatik
+denetler**, yeri sınıflandırır, 12 dile çevirir, sesli okur ve isteğe bağlı
+olarak kaynak gösterimli ayrıntılı bir anlatım üretir. Kabul edilen yerler bir
+topluluk keşif akışında paylaşılır.
+
+> ℹ️ Bu proje daha önce **TourLens** adıyla geliştirilmiştir; **JourEx**'e
+> yeniden adlandırılmıştır. Bazı backend içi tanımlayıcılar ve Docker container
+> adları (örn. `tourlens_api`, Android paket adı `com.tourlens`) geriye dönük
+> uyumluluk için eski adı korur; bunun işlevsel bir etkisi yoktur.
 
 ---
 
 ## ✨ Öne Çıkan Özellikler
 
 - 📷 **Tek tıkla tabela tanıma** — Google Vision OCR (DOCUMENT_TEXT_DETECTION)
+- 🛡️ **İçerik moderasyonu (yükleme kontrolü)** — yüklenen görselin uygulamanın
+  amacıyla bağdaşıp bağdaşmadığını otomatik denetler; alakasız/uygunsuz
+  görselleri (doğa/hayvan, küfür, e-posta, reklam) **DB'ye ve Keşfet'e
+  yazmadan reddeder** (LLM metin sınıflandırması + Google Vision SafeSearch)
 - 🏛️ **Akıllı kategorizasyon** — 22 kategori (Tarihi Yapı, Şahsiyet, Olay, Cami, Köprü, Türbe…) Groq LLM ile
 - 🌍 **12 dilde anında çeviri** — Google Translate (tr, en, de, fr, es, ar, ru, zh, ja, ko, pt, it)
 - 🔊 **Sesli okuma** — cihaz yerel TTS motoru (offline; uzun metinler otomatik parçalanıp kesintisiz okunur)
-- 🤖 **"Daha Fazla Bilgi"** — Gemini ile seçili dilde 500–1000 kelimelik akıcı anlatım
-- 🔁 **Mükerrer tespiti** — sentence-transformers + Milvus 2.4 (cosine, eşik 0.85)
+- 🤖 **"Daha Fazla Bilgi"** — Gemini ile seçili dilde 500–1000 kelimelik, kaynak gösterimli (grounding) akıcı anlatım
+- 🔁 **Mükerrer tespiti** — sentence-transformers + Milvus 2.4 (hibrit: cosine 0.85 **veya** cosine 0.62 + isim/şehir eşleşmesi)
 - 🗺️ **Açık tema harita** — Google Maps SDK + özel "parşömen" stil
-- ❤️ **Beğeni & katkı** — Keşfet'te beğen; Profil'de **Beğendiklerim** ve **Yüklediklerim** (katkıların)
-- 🎨 **"Tarihi Doku" arayüz** — açık parşömen krem zemin, zeytin-orman yeşili + antik altın vurgu, serif başlıklar, ornamental ayraçlar, akıcı animasyonlar
-- 🌐 **Canlı dil değiştirme** — uygulama arayüzü TR/EN/DE/FR/ES/AR'da tam çevrili (diğerleri EN'e fallback)
+- ❤️ **Beğeni & katkı** — Keşfet'te beğen; Profil'de **Beğendiklerim** ve **Yüklediklerim**
+- 🎨 **"Tarihi Doku" arayüz** — parşömen krem zemin, zeytin-orman yeşili + antik altın vurgu, serif başlıklar, ornamental ayraçlar, akıcı animasyonlar
+- 🌐 **Tam çok dilli arayüz** — uygulama arayüzü **12 dilin tamamında** çevrilidir
 
 ---
 
@@ -43,14 +58,47 @@ yapay zekâ destekli bir Android uygulamasıdır.
    (Meta+kullanıcı)│                (orijinal görseller)
                   ▼
             ai-module/
-            (OCR / LLM / Embedding / Translation / YouTube)
+            (OCR / Moderasyon / LLM / Embedding / Translation / YouTube)
                   │
                   ▼
            Milvus 2.4 (Vektör DB — mükerrer tespiti)
 ```
 
-**Pipeline (Celery chain):**
-`upload → preprocess_image → run_ocr → check_duplicate → categorize_with_llm → save_results`
+**Yapay zekâ işlem hattı (Celery chain) — 6 adım:**
+
+```
+upload → preprocess_image → run_ocr → moderate_content → check_duplicate → categorize_with_llm → save_results
+```
+
+`moderate_content`, OCR'dan **hemen sonra** çalışır; içerik reddedilirse sonraki
+adımlar kısa devre yapar ve hiçbir kayıt oluşturulmaz (durum: `REJECTED`).
+
+---
+
+## 🛡️ İçerik Moderasyonu (Yükleme Kontrolü)
+
+Kullanıcı türevli içeriğin platformun amacıyla tutarlı kalmasını sağlayan,
+projenin öne çıkan bileşenidir. `run_ocr` ile `check_duplicate` arasında çalışan
+`moderate_content` adımı **iki sinyali** birleştirerek karar verir:
+
+1. **LLM metin sınıflandırması** (varsayılan **Groq**, JSON modu) — OCR metnine
+   bakarak içeriğin tarihi/kültürel/turistik bir yer/kişi/olay/eserle ilgili olup
+   olmadığını (*alaka*) ve küfür/nefret/cinsel/kişisel veri içerip içermediğini
+   (*güvenlik*) belirler.
+2. **Google Vision SafeSearch + etiket** — OCR ile **aynı çağrıda** alınır (ek
+   API maliyeti yok); uygunsuz görseli (metin olmasa bile) yakalar, etiketler
+   red gerekçesini zenginleştirir.
+
+**Karar sırası:** güvenlik → okunabilir metin yok (doğa/hayvan vb. burada elenir)
+→ LLM erişilemedi ama metin var (`fail-open` ile kabul) → alaka → kabul.
+
+Reddedilen görsel için kullanıcıya temalı **"Görsel kabul edilmedi"** ekranı ve
+`reason_code`'a göre **12 dilde** yerelleştirilmiş gerekçe (`no_text`,
+`irrelevant`, `unsafe`, `advertisement`, `personal`) gösterilir. Yeni `Place`,
+MinIO orijinali ve Milvus kaydı **oluşturulmaz**.
+
+`.env` ile ayarlanabilir: `MODERATION_ENABLED`, `LLM_MODERATION_PROVIDER`,
+`MODERATION_MIN_TEXT_CHARS`, `MODERATION_SAFE_SEARCH_BLOCK`, `MODERATION_FAIL_OPEN`.
 
 ---
 
@@ -63,7 +111,7 @@ yapay zekâ destekli bir Android uygulamasıdır.
 | Async | Celery 5.4 + Redis 7 |
 | Veri | PostgreSQL 16, Milvus 2.4 (vektör), Redis 7 (cache) |
 | Depo | MinIO (S3 uyumlu) |
-| AI / ML | Google Cloud Vision (REST + API key, OCR), Groq `openai/gpt-oss-120b` (kategorizasyon, JSON-mode), Gemini `gemini-2.5-flash` (zenginleştirme), Google Translate v2 (12 dil), `all-MiniLM-L6-v2` (embedding, 384-dim) |
+| AI / ML | Google Cloud Vision (OCR + **SafeSearch** + etiket, REST + API key), Groq `openai/gpt-oss-120b` (kategorizasyon & **moderasyon**, JSON-mode), Gemini `gemini-2.5-flash` (zenginleştirme + grounding), Google Translate v2 (12 dil), `all-MiniLM-L6-v2` (embedding, 384-dim) |
 | DevOps | Docker, Docker Compose, Nginx, GitHub Actions |
 
 > **Sürüm kilitleri (RN 0.76 uyumu için):** `react-native-maps@1.20.1`,
@@ -107,13 +155,17 @@ Ardından **`.env`** içindeki şu değerleri doldur:
 | `DATABASE_URL` | Yukarıdaki kullanıcı/şifre/db ile aynı olmalı: `postgresql+asyncpg://<user>:<pass>@postgres:5432/<db>` |
 | `JWT_SECRET_KEY` | `openssl rand -hex 64` |
 | `MINIO_ACCESS_KEY` / `MINIO_SECRET_KEY` | Sen belirle |
-| `GOOGLE_VISION_API_KEY` | Google Cloud → **Cloud Vision API** |
+| `GOOGLE_VISION_API_KEY` | Google Cloud → **Cloud Vision API** (OCR + SafeSearch) |
 | `GOOGLE_TRANSLATE_API_KEY` | Google Cloud → **Cloud Translation API** |
 | `GOOGLE_MAPS_API_KEY` | Google Cloud → **Maps SDK for Android** (backend tarafı) |
 | `GEMINI_API_KEY` | **Google AI Studio** (aistudio.google.com) |
 | `GROQ_API_KEY` | **Groq Console** (console.groq.com) |
 | `YOUTUBE_API_KEY` | Google Cloud → **YouTube Data API v3** |
 | `GOOGLE_OAUTH_CLIENT_ID` / `SECRET` | (Opsiyonel) Google Sign-In için OAuth istemcisi |
+
+İçerik moderasyonu varsayılan açıktır; gerekirse `.env`'de ince ayar yapılabilir
+(`MODERATION_ENABLED`, `MODERATION_MIN_TEXT_CHARS`, `MODERATION_SAFE_SEARCH_BLOCK`,
+`MODERATION_FAIL_OPEN`, `LLM_MODERATION_PROVIDER`).
 
 Ve **`frontend/.env`** içinde:
 
@@ -124,13 +176,12 @@ Ve **`frontend/.env`** içinde:
 | `GOOGLE_OAUTH_WEB_CLIENT_ID` | (Opsiyonel) Google Sign-In |
 
 > ⚠️ `docker-compose.yml` tüm gizli değerleri `${...}` ile **`.env`'den okur**;
-> içinde hardcoded sır yoktur. `.env`'i doldurman doğrudan çalışır hale getirir.
-> `.env` değişince container'ları **`docker compose up -d`** ile yeniden oluştur
-> (`restart` env'i yeniden okumaz).
+> içinde hardcoded sır yoktur. `.env` değişince container'ları
+> **`docker compose up -d`** ile yeniden oluştur (`restart` env'i yeniden okumaz).
 
 ### 3) Backend + altyapıyı başlat
 ```bash
-make up        # docker compose up -d (api, celery, postgres, redis, milvus, minio, nginx)
+make up        # docker compose up -d (api, celery, postgres, redis, milvus, etcd, minio, nginx)
 make migrate   # alembic upgrade head
 ```
 - API → http://localhost:8000 · Swagger → http://localhost:8000/docs
@@ -165,10 +216,8 @@ Cloud Console** tarafındadır. Şunları yap:
 > cd frontend/android && ./gradlew signingReport
 > ```
 > ve **`:app` modülünün `Store: .../app/debug.keystore`** satırındaki SHA-1'i
-> Console'a ekle. (Bu repodaki keystore için SHA-1:
-> `5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25`.)
-> Ayarın yayılması ~5 dk sürebilir. Emülatörde test ediyorsan image **Google
-> Play Services** içermelidir (`PROVIDER_GOOGLE` bunu gerektirir).
+> Console'a ekle. Ayarın yayılması ~5 dk sürebilir. Emülatörde test ediyorsan
+> image **Google Play Services** içermelidir (`PROVIDER_GOOGLE` bunu gerektirir).
 
 ### Komut özeti
 ```bash
@@ -187,29 +236,33 @@ make lint      # ruff lint
 
 ```
 .
-├─ ai-module/              # OCR / LLM / Embedding / Translation / YouTube (Strategy Pattern)
+├─ ai-module/              # OCR / Moderasyon / LLM / Embedding / Translation / YouTube (Strategy Pattern)
+│  ├─ ocr/                 # Google Vision (OCR + SafeSearch + etiket)
+│  ├─ llm/                 # moderation.py, categorizer, enricher, groq/gemini provider
+│  ├─ embedding/           # sentence-transformers + Milvus istemcisi
+│  └─ storage/             # MinIO + pipeline persistence
 ├─ backend/                # FastAPI uygulaması
 │  ├─ app/
 │  │  ├─ api/v1/           # auth, users, places, discover, upload
-│  │  ├─ core/             # config, security, exceptions, dependencies
+│  │  ├─ core/             # config (moderation_* dahil), security, exceptions
 │  │  ├─ models/           # SQLAlchemy ORM
 │  │  ├─ repositories/     # Veri erişim katmanı
-│  │  ├─ schemas/          # Pydantic DTO'lar
+│  │  ├─ schemas/          # Pydantic DTO'lar (upload: MODERATING/REJECTED)
 │  │  ├─ services/         # İş mantığı
-│  │  └─ tasks/            # Celery (chain pipeline)
+│  │  └─ tasks/            # Celery (chain pipeline: + moderation_tasks.py)
 │  ├─ alembic/             # Versiyonlu migration'lar
 │  └─ Dockerfile           # Embedding modeli image'a gömülü (offline)
-├─ frontend/               # React Native CLI uygulaması
+├─ frontend/               # React Native CLI uygulaması (JourEx)
 │  ├─ android/             # Native Android (debug.keystore dahil)
 │  ├─ src/
 │  │  ├─ components/       # ScreenHeader, SectionTitle, OrnamentalDivider, AppButton/Card/Input, PlaceCard, TTSButton, …
 │  │  ├─ context/          # AuthContext, LanguageContext
 │  │  ├─ hooks/            # useAuth, useTTS, useUploadStatus
 │  │  ├─ navigation/       # AppNavigator (özel tab bar)
-│  │  ├─ screens/          # auth, home, discover, upload, profile
+│  │  ├─ screens/          # auth, home, discover, upload (+ red ekranı), profile
 │  │  ├─ services/         # axios + endpoint istemcileri
 │  │  ├─ types/            # Backend DTO TS karşılıkları
-│  │  └─ utils/            # theme (Tarihi Doku paleti), i18n (6 dil), constants, helpers
+│  │  └─ utils/            # theme (Tarihi Doku paleti), i18n (12 dil), constants, helpers
 │  ├─ App.tsx
 │  └─ react-native.config.js
 ├─ database/seed_data.sql  # pgcrypto eklentisi
@@ -235,6 +288,11 @@ Tam doküman: Swagger UI (`/docs`) veya `docs/api_documentation.md`.
 | Places | `GET /places · /places/{id} · /places/{id}/translate/{lang} · POST /places/{id}/enrich · GET /places/{id}/videos · POST /places/{id}/like · /save` |
 | Discover | `GET /discover (cursor feed) · /categories · /nearby` |
 
+> **Yükleme durumları:** `PENDING → PREPROCESSING → OCR_PROCESSING → MODERATING →
+> CHECKING_DUPLICATE → CATEGORIZING → COMPLETED`. Alternatif terminal durumlar:
+> `DUPLICATE` (mükerrer), **`REJECTED`** (içerik moderasyonu reddi, `reason_code`
+> ile), `FAILED`.
+
 ---
 
 ## 🎨 Tasarım Sistemi — "Tarihi Doku"
@@ -246,9 +304,8 @@ veren açık tema. Tasarım token'ları [`frontend/src/utils/theme.ts`](frontend
   yeşili** ana vurgu (`#3F6B4F`), **antik altın/bronz** ikincil vurgu (`#B0833A`),
   sepya metin.
 - **Tipografi:** serif başlıklar (kitabe estetiği) + sans-serif gövde.
-- **Bileşenler:** `ScreenHeader` (altın overline + serif başlık), `SectionTitle`,
-  `OrnamentalDivider` (altın hat + elmas motifi), altın "kitabe kenarlı"
-  (`accentEdge`) kartlar, 5 varyantlı `AppButton`.
+- **Bileşenler:** `ScreenHeader`, `SectionTitle`, `OrnamentalDivider`, altın
+  "kitabe kenarlı" kartlar, 5 varyantlı `AppButton`.
 - **Animasyon:** RN `Animated` ile giriş (fade+lift), press scale, shimmer, nabız.
 
 ---
@@ -260,6 +317,8 @@ veren açık tema. Tasarım token'ları [`frontend/src/utils/theme.ts`](frontend
 - JWT HS256 (15 dk access + 7 gün refresh) + bcrypt (rounds=12).
 - Rate limit: genel 100/dk, auth 5/dk, upload 10/dk, enrich 5/dk.
 - Upload: `image/jpeg|png|webp` + Pillow magic-byte kontrolü + 10 MB limit.
+- İçerik moderasyonu: uygunsuz/alakasız ve kişisel iletişim içeren görseller
+  kalıcı depoya yazılmadan elenir.
 - Frontend token'ları **react-native-keychain** ile şifrelenmiş Keystore'da.
 - Hesap silme: yer kayıtları `created_by = NULL` ile anonimleştirilir.
 
@@ -270,10 +329,12 @@ veren açık tema. Tasarım token'ları [`frontend/src/utils/theme.ts`](frontend
 | Belirti | Çözüm |
 |---|---|
 | Harita gri / sadece "Google" logosu | Maps SDK + Billing etkin mi? API key kısıtlamasına `com.tourlens` + **proje** keystore SHA-1 eklendi mi? (Kurulum §5) |
+| Görsel sürekli "kabul edilmedi" diyor | İçerik moderasyonu çok katı olabilir; `.env`'de `MODERATION_MIN_TEXT_CHARS`'ı artır / `MODERATION_SAFE_SEARCH_BLOCK=VERY_LIKELY` yap ya da `MODERATION_ENABLED=false`. Değişiklik sonrası `docker compose up -d` (recreate). |
 | "Daha Fazla Bilgi" 502 | Gemini kotası bitmiş olabilir; provider Groq'a düşer. `.env` değişikliğinden sonra `docker compose up -d` (recreate) gerekir. |
 | Tab/ikon yerine garip karakter | `react-native-vector-icons` fontları için temiz build: `cd frontend/android && ./gradlew clean` |
 | Pipeline "Görsel yükleniyor"da takılı | `docker logs tourlens_celery_worker` — embedding modeli image'a gömülüdür; sorun sürerse worker'ı yeniden başlat. |
 | `.env` değişikliği yansımıyor | `docker compose up -d` (gerekirse `--force-recreate`). `restart` env'i yeniden okumaz. |
+| Backend pipeline/prompt değişikliği yansımıyor | `docker compose restart api celery-worker` (moderasyon/kategorizasyon worker'da çalışır). |
 
 ---
 

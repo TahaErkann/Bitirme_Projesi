@@ -1,5 +1,5 @@
 /**
- * TourLens — RN CLI giriş noktası.
+ * JourEx — RN CLI giriş noktası.
  * react-native-gesture-handler en üstte import edilmelidir (Navigation 7 gerekliliği).
  */
 import 'react-native-gesture-handler';

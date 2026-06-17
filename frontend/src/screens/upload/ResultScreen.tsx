@@ -175,7 +175,7 @@ const ResultScreen: React.FC<{route: any; navigation: any}> = ({route, navigatio
           </View>
           <Text
             style={[typography.overline, {color: colors.gold, marginTop: spacing(2)}]}>
-            TourLens
+            JourEx
           </Text>
           <Text
             style={[typography.h2, {color: colors.textPrimary, marginTop: 6}]}>
@@ -365,7 +365,7 @@ const ResultScreen: React.FC<{route: any; navigation: any}> = ({route, navigatio
               <View>
                 <Text
                   style={[typography.overline, {color: colors.gold}]}>
-                  TourLens
+                  JourEx
                 </Text>
                 <Text
                   style={[

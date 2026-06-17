@@ -175,7 +175,7 @@ const AboutModal: React.FC<{visible: boolean; onClose: () => void}> = ({
                 typography.h2,
                 {color: colors.textPrimary, marginTop: 2},
               ]}>
-              TourLens
+              JourEx
             </Text>
             <OrnamentalDivider style={styles.aboutTopDivider} />
           </View>

@@ -1,5 +1,5 @@
 /**
- * TourLens Tasarım Sistemi — "Tarihi Doku" açık (light) teması.
+ * JourEx Tasarım Sistemi — "Tarihi Doku" açık (light) teması.
  *
  * Konsept: tarihi yerleri/şahsiyetleri tanıtan bir uygulama için müze/arşiv
  * hissi veren bir palet. Parşömen krem zemin, derin zeytin-orman yeşili ana
