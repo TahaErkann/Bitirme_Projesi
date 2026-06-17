@@ -1,4 +1,4 @@
-"""Pipeline 4. ve 5. adım: LLM kategorizasyon + DB persist."""
+"""Pipeline 5. ve 6. adım: LLM kategorizasyon + DB persist."""
 from __future__ import annotations
 
 import asyncio
@@ -12,7 +12,7 @@ logger = logging.getLogger("jourex.tasks.categorization")
 
 @celery_app.task(bind=True, name="tasks.categorize_with_llm")
 def categorize_with_llm(self, prev: dict[str, Any]) -> dict[str, Any]:
-    """LLM ile JSON kategorizasyon (varsayılan Gemini; boş/kota → Groq fallback)."""
+    """LLM ile JSON kategorizasyon (sağlayıcı .env LLM_CATEGORIZATION_PROVIDER'dan; boş/başarısız → diğer sağlayıcıya fallback)."""
     self.update_state(state="CATEGORIZING", meta={"progress": 78})
 
     # İçerik moderasyonu reddettiyse kategorizasyonu atla (LLM çağrısı yapma).
@@ -20,8 +20,8 @@ def categorize_with_llm(self, prev: dict[str, Any]) -> dict[str, Any]:
         return {**prev, "categorization": {}, "progress": 90}
 
     # Tek sağlayıcıyı doğrudan çağırmak yerine fallback'li orchestrator: birincil
-    # (.env LLM_CATEGORIZATION_PROVIDER, artık Gemini) boş/başarısız dönerse diğer
-    # sağlayıcıya (Groq) düşer → Gemini kotası (429) dolunca pipeline kilitlenmez.
+    # sağlayıcı (.env LLM_CATEGORIZATION_PROVIDER) boş/başarısız dönerse diğer
+    # sağlayıcıya düşer → bir sağlayıcının kotası (429) dolunca pipeline kilitlenmez.
     from ai_module.llm.categorizer import categorize_with_fallback  # type: ignore
 
     self.update_state(state="CATEGORIZING", meta={"progress": 82})

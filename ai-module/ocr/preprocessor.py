@@ -19,8 +19,8 @@ NOTE — Aggressive preprocessing kaldırıldı (2026-05-25):
   Vision API'ye orijinal renkli görseli minimum müdahaleyle göndermek
   daha doğru sonuç veriyor.
 
-OpenCV bağımlılığı korundu (gelecekteki cv2 ihtiyaçları için import'ta;
-şu an aktif kullanılmıyor).
+OpenCV (opencv-python-headless) bağımlılık olarak requirements.txt'te korundu
+(gelecekteki ihtiyaçlar için); bu dosya artık cv2 import etmiyor / kullanmıyor.
 """
 from __future__ import annotations
 

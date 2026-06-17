@@ -1,4 +1,4 @@
-// Metro bundler — RN 0.76 default + svg desteği
+// Metro bundler — RN 0.76 default yapılandırması (sourceExts)
 const {getDefaultConfig, mergeConfig} = require('@react-native/metro-config');
 
 const config = {

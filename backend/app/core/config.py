@@ -115,7 +115,7 @@ class Settings(BaseSettings):
 
     groq_model: str = "openai/gpt-oss-120b"
     gemini_categorization_model: str = "gemini-2.5-flash"
-    gemini_enrichment_model: str = "gemini-2.5-pro"
+    gemini_enrichment_model: str = "gemini-3.5-flash"
 
     # ---------------- Rate limit ----------------
     rate_limit_general: int = 100

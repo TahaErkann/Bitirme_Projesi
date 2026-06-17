@@ -1,10 +1,10 @@
 """UploadService — görsel yükleme + Celery pipeline tetikleme.
 
-Akış (master prompt § 1.4):
+Akış:
   1) MIME + boyut kontrolü (10 MB, image/*)
   2) Magic byte kontrolü (Pillow ile)
-  3) MinIO'ya temp/{upload_id}.jpg olarak kaydet
-  4) Celery chain başlat: preprocess → ocr → duplicate → categorize → save
+  3) MinIO'ya temp/{upload_id} olarak kaydet
+  4) Celery chain başlat: preprocess → ocr → moderate → duplicate → categorize → save
 """
 from __future__ import annotations
 

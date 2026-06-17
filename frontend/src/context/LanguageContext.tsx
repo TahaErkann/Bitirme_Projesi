@@ -1,7 +1,7 @@
 /**
  * LanguageContext — uygulama dilini AsyncStorage'da saklar; t() ile birlikte
- * UI metinlerini canlı günceller. Auth kullanıcısı varsa giriş yapıldığında
- * `user.preferred_language` ile senkronize edilir.
+ * UI metinlerini canlı günceller. (Dil tercihinin backend'e yazılması
+ * SettingsScreen'de updateMe ile yapılır.)
  */
 import React, {
   createContext,

@@ -70,7 +70,7 @@ class DiscoverService:
     async def nearby(
         self, *, lat: float, lng: float, radius_km: float
     ) -> NearbyResponse:
-        # Basit yaklaşım: PostGIS yokken bbox + Haversine post-filter.
+        # Basit yaklaşım: PostGIS yokken geniş aday seti + Haversine post-filter.
         from math import asin, cos, radians, sin, sqrt
 
         # Geniş bir aday seti çek (en fazla 200) — ardından mesafeye göre filtrele.

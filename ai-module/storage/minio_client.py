@@ -1,10 +1,9 @@
-"""MinIO yardımcıları — temp + originals + thumbnails (§ 4.3).
+"""MinIO yardımcıları — temp + originals.
 
 Bucket: jourex-images
 Path:
   - originals/{place_id}/{image_id}.jpg
-  - thumbnails/{place_id}/{image_id}.jpg
-  - temp/{upload_id}.jpg
+  - temp/{upload_id}
 """
 from __future__ import annotations
 

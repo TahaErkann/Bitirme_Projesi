@@ -102,8 +102,8 @@ class EnrichResponse(BaseModel):
     enriched_text: str
     llm_provider: str
     cached: bool = False
-    # Grounding ile gelen kaynaklar. DB'de saklanmaz → sadece taze üretimde dolu;
-    # cache hit'te boş döner.
+    # Grounding ile gelen kaynaklar. enrichments.sources (JSONB) kolonunda saklanır;
+    # kaynak yakalandıysa cache hit'te de döndürülür (NULL=henüz yakalanmadı, []=bulunamadı).
     sources: list[EnrichSource] = Field(default_factory=list)
 
 

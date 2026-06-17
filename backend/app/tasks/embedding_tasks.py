@@ -1,4 +1,4 @@
-"""Pipeline 3. adım: embedding + duplicate detection (master prompt § 6.3)."""
+"""Pipeline 4. adım: embedding + benzerlik adayı (candidates) üretimi."""
 from __future__ import annotations
 
 import logging
@@ -11,9 +11,10 @@ logger = logging.getLogger("jourex.tasks.embedding")
 
 @celery_app.task(bind=True, name="tasks.check_duplicate")
 def check_duplicate(self, prev: dict[str, Any]) -> dict[str, Any]:
-    """Embedding üret → Milvus'ta benzerleri ara → place_name+city kontrolü.
+    """Embedding üret → Milvus'ta benzerleri ara → aday listesi (candidates) döndür.
 
-    İKİ KOŞUL aynı anda sağlanırsa MÜKERRER kabul edilir.
+    Mükerrer KARARI burada verilmez; adaylar save_results (persistence.py)
+    tarafından hibrit eşikle (cosine + isim/şehir) değerlendirilir.
     """
     self.update_state(state="CHECKING_DUPLICATE", meta={"progress": 60})
 

@@ -1,17 +1,18 @@
 """Celery uygulaması ve pipeline orkestrasyonu.
 
-Master prompt § 11:
+Pipeline zinciri:
   chain(
-      preprocess_image.s(image_id),
+      preprocess_image.s(upload_id, user_id, crop),
       run_ocr.s(),
+      moderate_content.s(),
       check_duplicate.s(),
       categorize_with_llm.s(),
-      save_results.s()
+      save_results.s(),
   ).apply_async()
 
 Task durumları:
-  PENDING, PREPROCESSING, OCR_PROCESSING,
-  CHECKING_DUPLICATE, CATEGORIZING, COMPLETED, DUPLICATE, FAILED
+  PENDING, PREPROCESSING, OCR_PROCESSING, MODERATING,
+  CHECKING_DUPLICATE, CATEGORIZING, COMPLETED, DUPLICATE, REJECTED, FAILED
 """
 from __future__ import annotations
 

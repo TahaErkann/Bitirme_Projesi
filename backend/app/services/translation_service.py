@@ -1,10 +1,10 @@
-"""TranslationService — lazy translation + cache (master prompt § 6.5).
+"""TranslationService — lazy translation + cache.
 
 Sıralı strateji:
   1) Redis cache (TTL 24h)
   2) PostgreSQL `translations` tablosu
   3) Translation provider (Google Translate)
-  Fallback: provider başarısız → Gemini ile çeviri (LLM provider)
+  Provider başarısız olursa TranslationException fırlatılır.
 """
 from __future__ import annotations
 
