@@ -63,8 +63,8 @@ class GeminiProvider(EnrichmentProvider, CategorizationProvider):
 
     def categorize(self, ocr_text: str) -> dict[str, Any]:
         try:
-            content = self.chat(
-                system=CATEGORIZATION_SYSTEM_PROMPT, user=ocr_text, json_mode=True
+            content = self._generate_json_rest(
+                system=CATEGORIZATION_SYSTEM_PROMPT, user=ocr_text
             )
             return json.loads(content)
         except Exception as exc:  # pragma: no cover
@@ -75,6 +75,80 @@ class GeminiProvider(EnrichmentProvider, CategorizationProvider):
                 "tags": [], "confidence_score": 0.0,
             }
 
+    def _generate_json_rest(self, *, system: str, user: str) -> str:
+        """Gemini REST generateContent — JSON modu + thinking KAPALI.
+
+        SDK yolu yerine REST kullanırız çünkü (a) google-generativeai 0.8.3
+        thinkingConfig'i güvenilir geçirmez, (b) gemini-2.5-flash thinking AÇIKken
+        kotayı (429) şişiriyor. thinkingBudget=0 + responseMimeType=json ile temiz,
+        ucuz ve hızlı kategorizasyon elde ederiz.
+        """
+        import time
+
+        import httpx  # type: ignore
+
+        url = (
+            "https://generativelanguage.googleapis.com/v1beta/models/"
+            f"{self.categorization_model}:generateContent"
+        )
+        body = {
+            "systemInstruction": {"parts": [{"text": system}]},
+            "contents": [{"role": "user", "parts": [{"text": user}]}],
+            "generationConfig": {
+                # temperature=0 → kategori/şehir aynı girdi için deterministik
+                # olsun (aynı tabelanın farklı yüklemelerinde kategori oynamasını
+                # en aza indirir). thinking KAPALI + JSON modu.
+                "temperature": 0.0,
+                "responseMimeType": "application/json",
+                "thinkingConfig": {"thinkingBudget": 0},
+            },
+        }
+        # Ücretsiz katmanda geçici 429/503/500 görülebilir → kısa backoff'lu retry.
+        resp = None
+        for attempt in range(3):
+            with httpx.Client(timeout=30.0) as client:
+                resp = client.post(url, params={"key": self.api_key}, json=body)
+            if resp.status_code == 200:
+                break
+            if resp.status_code in (429, 500, 503) and attempt < 2:
+                logger.warning(
+                    "Gemini kategorizasyon geçici hata %s (deneme %d) — tekrar.",
+                    resp.status_code, attempt + 1,
+                )
+                time.sleep(3 * (attempt + 1))
+                continue
+            break
+        if resp is None or resp.status_code != 200:
+            resp.raise_for_status()  # kalıcı hata → categorize empty döndürür → fallback
+
+        data = resp.json()
+        cand = (data.get("candidates") or [{}])[0]
+        parts = ((cand.get("content") or {}).get("parts")) or []
+        return "".join(
+            p.get("text", "")
+            for p in parts
+            if p.get("text") and not p.get("thought")
+        )
+
+    # Grounding (Google Search → KAYNAKLAR) için model fallback zinciri.
+    # Birincil model (env: GEMINI_ENRICHMENT_MODEL) en başa konur; ardından
+    # kotası AYRI olan diğer flash modelleri denenir. Böylece bir modelin
+    # günlük kotası (429) dolunca grounding ve dolayısıyla kaynaklar başka
+    # modelle gelmeye devam eder. (gemini-flash-latest = en güncel flash alias.)
+    _ENRICH_FALLBACK_MODELS: tuple[str, ...] = (
+        "gemini-3.5-flash",
+        "gemini-2.5-flash",
+        "gemini-flash-latest",
+    )
+
+    def _enrich_model_chain(self) -> list[str]:
+        """Birincil (env) model + fallback'ler — sıra korunarak tekrarsız."""
+        out: list[str] = []
+        for m in (self.enrichment_model, *self._ENRICH_FALLBACK_MODELS):
+            if m and m not in out:
+                out.append(m)
+        return out
+
     async def enrich(
         self,
         *,
@@ -84,9 +158,8 @@ class GeminiProvider(EnrichmentProvider, CategorizationProvider):
         original_text: str,
         summary: str | None,
         target_lang: str,
-    ) -> str:
+    ) -> tuple[str, list[dict[str, str]], bool]:
         self._ensure_configured()
-        import google.generativeai as genai  # type: ignore
 
         target_lang_name = LANG_NAMES.get(target_lang, "English")
         system = ENRICH_SYSTEM_PROMPT_TEMPLATE.format(
@@ -118,6 +191,150 @@ class GeminiProvider(EnrichmentProvider, CategorizationProvider):
             "top_p": 0.9,
         }
 
+        # 1) Google Search grounding (GERÇEK kaynaklar) — MODEL ZİNCİRİ üzerinden
+        # REST ile. İlk 200+metin dönen model kazanır; biri 429 olursa otomatik
+        # bir sonraki modele geçilir (§ 7.10/7.32). grounded=True ise kaynaklar
+        # "yakalanmış" sayılır (boş olsa bile); False ise grounding'e hiç
+        # ulaşılamadı (kota/hata) → caller cache'te NULL bırakıp sonra tekrar
+        # denemeli (kota gelince kaynaklar otomatik gelsin).
+        text, sources, grounded = await self._enrich_grounded_chain(
+            models=self._enrich_model_chain(),
+            system=system,
+            user_prompt=user_prompt,
+            generation_config=generation_config,
+        )
+        if grounded and text:
+            return text, sources, True
+
+        # 2) Grounding zinciri tümüyle başarısız → grounding'siz düz SDK (kaynaksız).
+        text = await self._enrich_plain_sdk(
+            system=system,
+            user_prompt=user_prompt,
+            generation_config=generation_config,
+        )
+        return (text or "").strip(), [], False
+
+    async def _enrich_grounded_chain(
+        self,
+        *,
+        models: list[str],
+        system: str,
+        user_prompt: str,
+        generation_config: dict[str, Any],
+    ) -> tuple[str, list[dict[str, str]], bool]:
+        """Grounding'i model zinciri üzerinde dener; ilk işe yarayan kazanır.
+
+        Returns (text, sources, grounded). grounded=True yalnızca bir model
+        200 + kullanılabilir metin döndürdüğünde olur; o noktada kaynaklar
+        (boş da olsa) "yakalanmış" sayılır. Hiçbir model tutmazsa ("", [], False).
+        """
+        for model in models:
+            text, sources, ok = await self._enrich_grounded_once(
+                model=model,
+                system=system,
+                user_prompt=user_prompt,
+                generation_config=generation_config,
+            )
+            if ok and text.strip():
+                logger.info(
+                    "Grounding başarılı: model=%s, %d kaynak", model, len(sources)
+                )
+                return text.strip(), sources, True
+        logger.warning(
+            "Grounding zinciri tümüyle başarısız (modeller: %s) — kaynaksız yola düşülüyor.",
+            ", ".join(models),
+        )
+        return "", [], False
+
+    async def _enrich_grounded_once(
+        self,
+        *,
+        model: str,
+        system: str,
+        user_prompt: str,
+        generation_config: dict[str, Any],
+    ) -> tuple[str, list[dict[str, str]], bool]:
+        """Tek model için REST generateContent + google_search → (metin, kaynaklar, ok).
+
+        ok=True yalnızca HTTP 200 döndüğünde (grounding gerçekten çalıştı; kaynak
+        bulunmasa bile). 429/hata/exception → ok=False (bir sonraki modele geç).
+        Kaynaklar grounding_metadata.groundingChunks[].web.{uri,title}'dan gelir.
+        """
+        import httpx  # type: ignore
+
+        url = (
+            "https://generativelanguage.googleapis.com/v1beta/models/"
+            f"{model}:generateContent"
+        )
+        body: dict[str, Any] = {
+            "systemInstruction": {"parts": [{"text": system}]},
+            "contents": [{"role": "user", "parts": [{"text": user_prompt}]}],
+            "tools": [{"google_search": {}}],
+            "generationConfig": {
+                "temperature": generation_config["temperature"],
+                "maxOutputTokens": generation_config["max_output_tokens"],
+                "topP": generation_config["top_p"],
+                # ⚠ KRİTİK: flash modelleri "düşünen" modeldir. thinking AÇIKken
+                # (a) düşünme izi cevaba sızıyor ve (b) model gerçek grounding
+                # yapmak yerine aramayı düşünme metninde simüle ediyor →
+                # groundingMetadata boş kalıyor. thinkingBudget=0 ile her ikisi de
+                # çözülür: tek temiz cevap part'ı + gerçek kaynaklar.
+                "thinkingConfig": {"thinkingBudget": 0},
+            },
+        }
+        try:
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                resp = await client.post(url, params={"key": self.api_key}, json=body)
+            data = resp.json()
+            if resp.status_code != 200:
+                logger.warning(
+                    "Gemini grounded REST %s (model=%s): %s",
+                    resp.status_code,
+                    model,
+                    (data.get("error") or {}).get("message", data),
+                )
+                return "", [], False
+
+            candidates = data.get("candidates") or []
+            if not candidates:
+                # 200 ama boş — grounding çalıştı sayılır ama metin yok; üst katman
+                # text.strip() ile eler ve bir sonraki modele geçer.
+                return "", [], True
+            cand = candidates[0]
+            parts = ((cand.get("content") or {}).get("parts")) or []
+            # Güvenlik kemeri: thought part'larını metne KATMA — yalnız cevap part'ları.
+            text = "\n".join(
+                p.get("text", "")
+                for p in parts
+                if p.get("text") and not p.get("thought")
+            ).strip()
+
+            sources: list[dict[str, str]] = []
+            seen: set[str] = set()
+            grounding = cand.get("groundingMetadata") or {}
+            for chunk in grounding.get("groundingChunks") or []:
+                web = chunk.get("web") or {}
+                uri = web.get("uri")
+                if not uri or uri in seen:
+                    continue
+                seen.add(uri)
+                sources.append({"title": web.get("title") or uri, "url": uri})
+
+            logger.info(
+                "Gemini grounded enrich: %d karakter, %d kaynak (model=%s)",
+                len(text), len(sources), model,
+            )
+            return text, sources, True
+        except Exception as exc:  # pragma: no cover
+            logger.warning("Gemini grounded REST hatası (model=%s): %s", model, exc)
+            return "", [], False
+
+    async def _enrich_plain_sdk(
+        self, *, system: str, user_prompt: str, generation_config: dict[str, Any]
+    ) -> str:
+        """Grounding'siz düz Gemini SDK yolu (kaynaksız fallback)."""
+        import google.generativeai as genai  # type: ignore
+
         # Birincil model (örn. .env'deki gemini-2.5-flash) bir hata verirse
         # bilinen-çalışan ÜCRETSIZ bir flash modeline düşelim. NOT: eski
         # "gemini-1.5-pro-latest" bu API sürümünde 404 veriyordu; ücretsiz
@@ -138,7 +355,7 @@ class GeminiProvider(EnrichmentProvider, CategorizationProvider):
                     user_prompt, generation_config=generation_config
                 )
                 if resp is not None:
-                    logger.info("Gemini enrich modeli kullanıldı: %s", model_name)
+                    logger.info("Gemini enrich (plain) modeli kullanıldı: %s", model_name)
                     break
             except Exception as exc:  # pragma: no cover
                 last_exc = exc

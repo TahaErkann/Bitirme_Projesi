@@ -49,7 +49,7 @@ def get_enrichment_provider(name: str | None = None) -> EnrichmentProvider:
 
             async def enrich(
                 self, *, place_name, country, city, original_text, summary, target_lang,
-            ) -> str:
+            ) -> tuple[str, list[dict[str, str]], bool]:
                 target_lang_name = LANG_NAMES.get(target_lang, "English")
                 sys_prompt = ENRICH_SYSTEM_PROMPT_TEMPLATE.format(
                     target_lang_name=target_lang_name,
@@ -65,7 +65,9 @@ def get_enrichment_provider(name: str | None = None) -> EnrichmentProvider:
                         f"\nReminder: write the ENTIRE answer ONLY in {target_lang_name} ({target_lang}). Begin now.",
                     ]
                 )
-                return groq.chat(system=sys_prompt, user=user_prompt, json_mode=False)
+                # Groq grounding desteklemez → kaynaksız (grounded=False).
+                text = groq.chat(system=sys_prompt, user=user_prompt, json_mode=False)
+                return text, [], False
 
         return GroqEnricher()
 

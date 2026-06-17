@@ -62,12 +62,26 @@ async def enrich_place(
 ) -> EnrichResponse:
     """Tek buton → tek istek → tek cevap (chat değil).
 
+    Kaynak (grounding) tutarlılığı — Sorun 1 fix:
+      Kaynaklar artık DB'de (`enrichments.sources`) saklanır.
+      - Cache hit (metin VAR + kaynak yakalanmış) → saklanan kaynaklarla döner.
+      - Eski satır (kaynak NULL = hiç yakalanmamış) → bir kez yeniden üretip
+        kaynakları yakalar; böylece kullanıcı "Tekrar Üret"e basmak zorunda
+        kalmaz. Yakalandıktan sonra (boş liste de olsa) artık tekrar üretilmez.
+      - force=True (Tekrar Üret) → her zaman taze üretim.
+
     Birincil sağlayıcı boş döndürürse fallback'e geçilir; iki sağlayıcı da
-    boş döndürürse hiç cache'e yazılmaz — böylece kullanıcı tekrar deneyebilir.
+    boş döndürür VE elde eski metin yoksa 502 → kullanıcı tekrar deneyebilir.
     """
     svc = PlaceService(db)
     cached = await svc.get_cached_enrichment(place_id, payload.language_code)
-    if cached and cached.enriched_text and cached.enriched_text.strip():
+
+    has_text = bool(cached and cached.enriched_text and cached.enriched_text.strip())
+    # sources NULL ise kaynak hiç yakalanmamış demektir (boş liste "yakalandı"
+    # sayılır). NULL satırlarda kaynak çekmek için yeniden üretime düşeriz.
+    sources_captured = bool(cached and cached.sources is not None)
+
+    if not payload.force and has_text and sources_captured:
         return svc.to_enrich_response(cached, cached=True)
 
     place = await svc.places.get_by_id(place_id)
@@ -78,7 +92,7 @@ async def enrich_place(
     # Birincil + fallback orchestrator (boş cevapta diğerine geçer)
     from ai_module.llm.enricher import enrich_with_fallback  # type: ignore
 
-    enriched_text, provider_name = await enrich_with_fallback(
+    enriched_text, provider_name, sources, grounded = await enrich_with_fallback(
         place_name=place.place_name,
         country=place.country,
         city=place.city,
@@ -88,7 +102,11 @@ async def enrich_place(
     )
 
     if not enriched_text or not enriched_text.strip():
-        # Boş cevabı cache'lemiyoruz → bir sonraki tıklama tekrar deneme yapar.
+        # Üretim boş döndü. Elimizde eski metin varsa onu (saklı kaynaklarıyla)
+        # geri ver — boş cevap yüzünden kullanılabilir içeriği kaybetmeyelim.
+        if has_text:
+            return svc.to_enrich_response(cached, cached=True)
+        # Hiç metin yok → cache'lemeden 502 (sonraki tıklama tekrar dener).
         from fastapi import HTTPException
         from fastapi import status as http_status
         raise HTTPException(
@@ -96,21 +114,29 @@ async def enrich_place(
             detail="LLM enrichment boş cevap döndü, lütfen tekrar deneyin.",
         )
 
-    # Eski boş cache satırı varsa güncelle, yoksa yeni satır yaz
+    # KAYNAK SAKLAMA — grounding başarılıysa kaynakları "yakala" (boş liste de
+    # olsa: bu yer için kaynak bulunamadı → tekrar üretme); grounding'e
+    # ulaşılamadıysa (kota/hata → grounded=False) NULL bırak ki kota gelince
+    # bir sonraki "Daha Fazla Bilgi" tıklaması grounding'i tekrar denesin.
+    store_sources = sources if grounded else None
+
+    # Eski satır varsa güncelle, yoksa yaz.
     if cached:
         cached.enriched_text = enriched_text
         cached.llm_provider = provider_name
+        cached.sources = store_sources
         await db.commit()
         await db.refresh(cached)
-        return svc.to_enrich_response(cached, cached=False)
+        return svc.to_enrich_response(cached, cached=False, sources=sources)
 
     saved = await svc.save_enrichment(
         place_id=place_id,
         lang=payload.language_code,
         text=enriched_text,
         provider=provider_name,
+        sources=store_sources,
     )
-    return svc.to_enrich_response(saved, cached=False)
+    return svc.to_enrich_response(saved, cached=False, sources=sources)
 
 
 # ---------------------------------------------------------- youtube videos

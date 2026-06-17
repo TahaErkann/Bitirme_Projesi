@@ -9,6 +9,10 @@ class OCRResultDict(TypedDict, total=False):
     text: str
     language: str
     confidence: float
+    # İçerik moderasyonu için ek sinyaller (yalnız destekleyen sağlayıcılarda
+    # dolu gelir; örn. Google Vision aynı çağrıda etiket + SafeSearch döndürür).
+    labels: list  # [{"description": str, "score": float}, ...]
+    safe_search: dict  # {"adult": "LIKELY", "violence": "UNLIKELY", "racy": ...}
 
 
 class BaseOCRProvider(ABC):

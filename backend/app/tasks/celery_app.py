@@ -32,6 +32,7 @@ celery_app = Celery(
     backend=settings.celery_result_backend,
     include=[
         "app.tasks.ocr_tasks",
+        "app.tasks.moderation_tasks",
         "app.tasks.embedding_tasks",
         "app.tasks.categorization_tasks",
         "app.tasks.translation_tasks",
@@ -75,15 +76,18 @@ def enqueue_pipeline(
 
     from app.tasks.categorization_tasks import categorize_with_llm, save_results
     from app.tasks.embedding_tasks import check_duplicate
+    from app.tasks.moderation_tasks import moderate_content
     from app.tasks.ocr_tasks import preprocess_image, run_ocr
 
     # 1) MinIO temp/{upload_id} yaz
     put_temp_object(upload_id=upload_id, content=content, content_type=content_type)
 
-    # 2) Chain
+    # 2) Chain — OCR'dan sonra içerik moderasyonu: alakasız/uygunsuz görseller
+    # embedding/kategorizasyon/DB yazımından ÖNCE elenir (boşa iş yapılmaz).
     pipeline = chain(
         preprocess_image.s(upload_id, user_id, crop),
         run_ocr.s(),
+        moderate_content.s(),
         check_duplicate.s(),
         categorize_with_llm.s(),
         save_results.s(),
@@ -129,6 +133,15 @@ def get_pipeline_status(task_id: str) -> UploadStatusResponse:
                 progress=100,
                 duplicate_of=result.get("duplicate_of"),
             )
+        if result.get("status") == "REJECTED":
+            # İçerik moderasyonu reddetti — DB'ye kaydedilmedi.
+            return UploadStatusResponse(
+                task_id=task_id,
+                status="REJECTED",
+                progress=100,
+                reason_code=result.get("reason_code"),
+                reason=result.get("reason"),
+            )
         return UploadStatusResponse(
             task_id=task_id,
             status="COMPLETED",
@@ -140,6 +153,7 @@ def get_pipeline_status(task_id: str) -> UploadStatusResponse:
     custom_states = {
         "PREPROCESSING",
         "OCR_PROCESSING",
+        "MODERATING",
         "CHECKING_DUPLICATE",
         "CATEGORIZING",
     }

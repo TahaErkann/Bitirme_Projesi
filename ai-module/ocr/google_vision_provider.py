@@ -33,13 +33,21 @@ class GoogleVisionProvider(BaseOCRProvider):
         self.api_key = api_key or ""
 
     def run(self, image_bytes: bytes) -> OCRResultDict:
-        """REST API ile DOCUMENT_TEXT_DETECTION çağrısı yap.
+        """REST API ile DOCUMENT_TEXT_DETECTION + içerik moderasyon sinyalleri.
 
         Tabela ve yoğun metin için DOCUMENT_TEXT_DETECTION daha iyi sonuç
         verir; metin algılama + bloklara ayırma + dil tespiti yapar.
+
+        İçerik moderasyonu (yükleme kontrolü) için AYNI çağrıda iki ek özellik
+        daha istenir — böylece ekstra API turu/maliyeti olmadan:
+          - SAFE_SEARCH_DETECTION → uygunsuz (adult/violence/racy) görsel tespiti
+          - LABEL_DETECTION       → sahne etiketleri. NOT: metinsiz görsel ELEME
+            kararı tamamen METNE dayalıdır (OCR metni yoksa reddedilir); etiketler
+            kararı DEĞİŞTİRMEZ, yalnızca red gerekçesini zenginleştirir (örn.
+            "algılanan içerik: Cat, Wildlife").
         """
         if not self.api_key:
-            return {"text": "", "language": "", "confidence": 0.0}
+            return {"text": "", "language": "", "confidence": 0.0, "labels": [], "safe_search": {}}
 
         payload: dict[str, Any] = {
             "requests": [
@@ -48,7 +56,9 @@ class GoogleVisionProvider(BaseOCRProvider):
                         "content": base64.b64encode(image_bytes).decode("ascii"),
                     },
                     "features": [
-                        {"type": "DOCUMENT_TEXT_DETECTION", "maxResults": 1}
+                        {"type": "DOCUMENT_TEXT_DETECTION", "maxResults": 1},
+                        {"type": "SAFE_SEARCH_DETECTION"},
+                        {"type": "LABEL_DETECTION", "maxResults": 10},
                     ],
                 }
             ]
@@ -63,7 +73,7 @@ class GoogleVisionProvider(BaseOCRProvider):
             )
         except requests.RequestException as exc:
             logger.error("Google Vision REST isteği başarısız: %s", exc)
-            return {"text": "", "language": "", "confidence": 0.0}
+            return {"text": "", "language": "", "confidence": 0.0, "labels": [], "safe_search": {}}
 
         if resp.status_code != 200:
             logger.error(
@@ -71,17 +81,17 @@ class GoogleVisionProvider(BaseOCRProvider):
                 resp.status_code,
                 resp.text[:500],
             )
-            return {"text": "", "language": "", "confidence": 0.0}
+            return {"text": "", "language": "", "confidence": 0.0, "labels": [], "safe_search": {}}
 
         body = resp.json()
         responses = body.get("responses") or []
         if not responses:
-            return {"text": "", "language": "", "confidence": 0.0}
+            return {"text": "", "language": "", "confidence": 0.0, "labels": [], "safe_search": {}}
 
         first = responses[0]
         if "error" in first:
             logger.error("Google Vision hata: %s", first["error"])
-            return {"text": "", "language": "", "confidence": 0.0}
+            return {"text": "", "language": "", "confidence": 0.0, "labels": [], "safe_search": {}}
 
         full = first.get("fullTextAnnotation") or {}
         full_text = full.get("text", "") or ""
@@ -105,8 +115,26 @@ class GoogleVisionProvider(BaseOCRProvider):
             sum(confidences) / len(confidences) if confidences else 0.0
         )
 
+        # İçerik moderasyon sinyalleri — SafeSearch + etiketler.
+        safe_raw = first.get("safeSearchAnnotation") or {}
+        safe_search = {
+            key: safe_raw.get(key)
+            for key in ("adult", "spoof", "medical", "violence", "racy")
+            if safe_raw.get(key)
+        }
+        labels = [
+            {
+                "description": lbl.get("description") or "",
+                "score": float(lbl.get("score") or 0.0),
+            }
+            for lbl in (first.get("labelAnnotations") or [])
+            if lbl.get("description")
+        ]
+
         return {
             "text": full_text,
             "language": language,
             "confidence": float(avg_conf),
+            "labels": labels,
+            "safe_search": safe_search,
         }

@@ -17,6 +17,10 @@ def check_duplicate(self, prev: dict[str, Any]) -> dict[str, Any]:
     """
     self.update_state(state="CHECKING_DUPLICATE", meta={"progress": 60})
 
+    # İçerik moderasyonu reddettiyse embedding/duplicate aramasını atla.
+    if (prev.get("moderation") or {}).get("rejected"):
+        return {**prev, "embedding": None, "candidates": [], "progress": 75}
+
     from ai_module.embedding.embedding_service import EmbeddingService  # type: ignore
     from ai_module.embedding.milvus_client import MilvusClient  # type: ignore
 

@@ -72,6 +72,7 @@ class Settings(BaseSettings):
     google_vision_api_key: str = ""
     google_translate_api_key: str = ""
     google_maps_api_key: str = ""
+    google_geocoding_api_key: str = ""
     gemini_api_key: str = ""
     groq_api_key: str = ""
     youtube_api_key: str = ""
@@ -80,10 +81,37 @@ class Settings(BaseSettings):
     ocr_provider: str = "google_vision"
     llm_categorization_provider: str = "groq"
     llm_enrichment_provider: str = "gemini"
+    llm_moderation_provider: str = "groq"
     translation_provider: str = "google_translate"
 
     embedding_model: str = "all-MiniLM-L6-v2"
+    # Mükerrer tespiti — hibrit (OCR metni embedding'i tek başına kırılgan: aynı
+    # tabela farklı kırpılınca/ışıkta metin değişir, cosine eşiğin altına düşer).
+    #   score >= similarity_threshold                 → güçlü sinyal, tek başına mükerrer.
+    #   score >= duplicate_relaxed_threshold  VE
+    #     place_name bulanık eşleşiyor VE şehir uyumlu → mükerrer.
+    # Böylece "Gebze Belediyesi" kırpma farkı gibi metin oynamaları yakalanır,
+    # ama farklı yerler (düşük isim benzerliği) yanlışlıkla birleştirilmez.
     similarity_threshold: float = 0.85
+    duplicate_relaxed_threshold: float = 0.62
+    duplicate_name_ratio: float = 0.80
+
+    # ---------------- İçerik moderasyonu (yükleme kontrolü) ----------------
+    # Yüklenen görselin uygulamanın amacıyla (tarihi/turistik tabela) bağdaşıp
+    # bağdaşmadığını OCR sonrası iki sinyalle denetler:
+    #   1) LLM metin sınıflandırması (alaka + güvenlik)  → reklam/küfür/e-posta/alakasız
+    #   2) Google Vision SafeSearch + Label (aynı OCR çağrısı) → uygunsuz görsel + metinsiz doğa/hayvan
+    # Reddedilen görsel DB'ye/Keşfet'e KAYDEDİLMEZ (REJECTED durumu).
+    moderation_enabled: bool = True
+    # OCR metni bu eşikten kısaysa "okunabilir tabela metni yok" sayılır
+    # (doğa/hayvan fotoğrafları gibi metinsiz görseller burada elenir).
+    moderation_min_text_chars: int = 6
+    # Vision SafeSearch bu seviye ve üstündeyse uygunsuz kabul edilir.
+    # Geçerli sıralama: VERY_UNLIKELY < UNLIKELY < POSSIBLE < LIKELY < VERY_LIKELY
+    moderation_safe_search_block: str = "LIKELY"
+    # LLM moderasyon çağrısı başarısızsa (kota/ağ): True → metin VARSA kabul et
+    # (yumuşak iniş; metinsiz/uygunsuz kontrolleri yine de çalışır), False → reddet.
+    moderation_fail_open: bool = True
 
     groq_model: str = "openai/gpt-oss-120b"
     gemini_categorization_model: str = "gemini-2.5-flash"

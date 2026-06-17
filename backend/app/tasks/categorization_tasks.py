@@ -12,14 +12,20 @@ logger = logging.getLogger("tourlens.tasks.categorization")
 
 @celery_app.task(bind=True, name="tasks.categorize_with_llm")
 def categorize_with_llm(self, prev: dict[str, Any]) -> dict[str, Any]:
-    """Groq (Llama 3.3 70B) ile JSON kategorizasyon."""
+    """LLM ile JSON kategorizasyon (varsayılan Gemini; boş/kota → Groq fallback)."""
     self.update_state(state="CATEGORIZING", meta={"progress": 78})
 
-    from ai_module.llm.factory import get_categorization_provider  # type: ignore
+    # İçerik moderasyonu reddettiyse kategorizasyonu atla (LLM çağrısı yapma).
+    if (prev.get("moderation") or {}).get("rejected"):
+        return {**prev, "categorization": {}, "progress": 90}
 
-    provider = get_categorization_provider()
+    # Tek sağlayıcıyı doğrudan çağırmak yerine fallback'li orchestrator: birincil
+    # (.env LLM_CATEGORIZATION_PROVIDER, artık Gemini) boş/başarısız dönerse diğer
+    # sağlayıcıya (Groq) düşer → Gemini kotası (429) dolunca pipeline kilitlenmez.
+    from ai_module.llm.categorizer import categorize_with_fallback  # type: ignore
+
     self.update_state(state="CATEGORIZING", meta={"progress": 82})
-    cat = provider.categorize(prev["cleaned_text"])
+    cat = categorize_with_fallback(prev["cleaned_text"])
     self.update_state(state="CATEGORIZING", meta={"progress": 88})
     return {**prev, "categorization": cat, "progress": 90}
 
@@ -39,6 +45,21 @@ def save_results(self, prev: dict[str, Any]) -> dict[str, Any]:
     her seferinde sıfırdan yaratılır (bkz. persistence.py).
     """
     self.update_state(state="CATEGORIZING", meta={"progress": 93})
+
+    # İçerik moderasyonu reddettiyse hiçbir şey kalıcılaştırma — Place YARATMA,
+    # MinIO original / Milvus insert YOK. Görsel Keşfet'e/DB'ye girmez.
+    moderation = prev.get("moderation") or {}
+    if moderation.get("rejected"):
+        logger.info(
+            "save_results atlandı (moderasyon reddi): code=%s",
+            moderation.get("reason_code"),
+        )
+        return {
+            "status": "REJECTED",
+            "reason_code": moderation.get("reason_code"),
+            "reason": moderation.get("reason"),
+            "progress": 100,
+        }
 
     from ai_module.storage.persistence import persist_pipeline_result  # type: ignore
 

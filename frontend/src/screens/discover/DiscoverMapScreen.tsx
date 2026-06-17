@@ -8,7 +8,7 @@
  * PROVIDER_GOOGLE, LIGHT_MAP_STYLE, marker'lar, fetchNearby, kart slide
  * animasyonu, MapTimeoutHint) AYNEN korundu.
  */
-import React, {useEffect, useRef, useState} from 'react';
+import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {Animated, Easing, Pressable, StyleSheet, View} from 'react-native';
 import {Text} from '@/components/AppText';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -36,35 +36,62 @@ const LIGHT_MAP_STYLE = [
   {featureType: 'administrative', elementType: 'geometry.stroke', stylers: [{color: '#C9BB9C'}]},
 ];
 
-const DiscoverMapScreen: React.FC<{navigation: any}> = ({navigation}) => {
+const DiscoverMapScreen: React.FC<{navigation: any; route?: any}> = ({
+  navigation,
+  route,
+}) => {
+  // PlaceDetail "Haritada Gör" buraya odak parametreleriyle gelir; bu modda
+  // tek bir KIRMIZI işaretle yerin il/ilçe merkezini gösteririz.
+  const focus = useMemo(() => {
+    const p = route?.params;
+    if (p?.focusLat == null || p?.focusLng == null) return null;
+    return {
+      lat: Number(p.focusLat),
+      lng: Number(p.focusLng),
+      label: p.focusLabel as string | undefined,
+      subtitle: p.focusSubtitle as string | undefined,
+      category: p.focusCategory as string | undefined,
+    };
+  }, [route?.params]);
+
   const [items, setItems] = useState<PlaceListItem[]>([]);
   const [selected, setSelected] = useState<PlaceListItem | null>(null);
   const [mapReady, setMapReady] = useState(false);
 
   const cardLift = useRef(new Animated.Value(140)).current;
 
-  const initialRegion = {
-    latitude: 41.0086,
-    longitude: 28.9802,
-    latitudeDelta: 0.05,
-    longitudeDelta: 0.05,
-  };
+  const initialRegion = focus
+    ? {
+        latitude: focus.lat,
+        longitude: focus.lng,
+        latitudeDelta: 0.18,
+        longitudeDelta: 0.18,
+      }
+    : {
+        latitude: 41.0086,
+        longitude: 28.9802,
+        latitudeDelta: 0.05,
+        longitudeDelta: 0.05,
+      };
 
   useEffect(() => {
+    // Odak modunda yakındakileri çekmiyoruz; sadece hedef kırmızı işaret kalır.
+    if (focus) return;
     fetchNearby(initialRegion.latitude, initialRegion.longitude, 50)
       .then(setItems)
       .catch(() => undefined);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [focus]);
 
   useEffect(() => {
+    // Odak modunda alt bilgi kartı en baştan görünür olsun.
     Animated.timing(cardLift, {
-      toValue: selected ? 0 : 140,
+      toValue: selected || focus ? 0 : 140,
       duration: 280,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
     }).start();
-  }, [selected, cardLift]);
+  }, [selected, cardLift, focus]);
 
   return (
     <View style={styles.root}>
@@ -90,6 +117,16 @@ const DiscoverMapScreen: React.FC<{navigation: any}> = ({navigation}) => {
             pinColor={colors.accent}
           />
         ))}
+
+        {/* Odak yeri — PlaceDetail'den gelen tek KIRMIZI konum işareti. */}
+        {focus ? (
+          <Marker
+            coordinate={{latitude: focus.lat, longitude: focus.lng}}
+            title={focus.label}
+            description={focus.subtitle}
+            pinColor="red"
+          />
+        ) : null}
       </MapView>
 
       {/*
@@ -112,7 +149,37 @@ const DiscoverMapScreen: React.FC<{navigation: any}> = ({navigation}) => {
           styles.bottomCard,
           {transform: [{translateY: cardLift}]},
         ]}>
-        {selected ? (
+        {focus ? (
+          <View style={styles.cardInner}>
+            <View style={[styles.cardThumb, styles.cardThumbFocus]}>
+              <Icon name="place" size={24} color={colors.error} />
+            </View>
+            <View style={{flex: 1}}>
+              <Text style={styles.cardOverline}>{focus.category || '—'}</Text>
+              <Text
+                numberOfLines={1}
+                style={[typography.h3, {color: colors.textPrimary, marginTop: 2}]}>
+                {focus.label || '—'}
+              </Text>
+              <View style={styles.cardMetaRow}>
+                <Icon
+                  name="location-on"
+                  size={13}
+                  color={colors.error}
+                  style={{marginRight: 3}}
+                />
+                <Text
+                  numberOfLines={1}
+                  style={[
+                    typography.caption,
+                    {color: colors.textSecondary, flex: 1},
+                  ]}>
+                  {focus.subtitle || '—'}
+                </Text>
+              </View>
+            </View>
+          </View>
+        ) : selected ? (
           <Pressable
             style={styles.cardInner}
             android_ripple={{color: colors.surfaceAlt}}
@@ -278,6 +345,10 @@ const styles = StyleSheet.create({
     borderColor: colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  cardThumbFocus: {
+    backgroundColor: 'rgba(226,117,110,0.16)',
+    borderColor: colors.error,
   },
   cardOverline: {
     ...typography.overline,

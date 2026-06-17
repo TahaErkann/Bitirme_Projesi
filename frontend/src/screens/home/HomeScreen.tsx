@@ -237,16 +237,25 @@ const QuickAction: React.FC<{
   sub: string;
   onPress: () => void;
 }> = ({icon, label, sub, onPress}) => (
-  <AppCard onPress={onPress} style={{flex: 1}} bordered>
-    <View style={styles.quickIcon}>
-      <Icon name={icon} size={20} color={colors.accent} />
+  <AppCard onPress={onPress} bordered>
+    <View style={styles.quickInner}>
+      <View style={styles.quickIcon}>
+        <Icon name={icon} size={22} color={colors.accent} />
+      </View>
+      <View style={styles.quickTexts}>
+        <Text style={[typography.h3, {color: colors.textPrimary}]}>
+          {label}
+        </Text>
+        <Text
+          style={[
+            typography.caption,
+            {color: colors.textSecondary, marginTop: 2},
+          ]}>
+          {sub}
+        </Text>
+      </View>
+      <Icon name="chevron-right" size={22} color={colors.accent} />
     </View>
-    <Text style={[typography.h3, {color: colors.textPrimary, marginTop: 10}]}>
-      {label}
-    </Text>
-    <Text style={[typography.caption, {color: colors.textSecondary}]}>
-      {sub}
-    </Text>
   </AppCard>
 );
 
@@ -361,14 +370,19 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   quickRow: {
-    flexDirection: 'row',
-    gap: spacing(1.5),
+    gap: spacing(1.25),
     marginTop: spacing(2),
     paddingHorizontal: spacing(2.5),
   },
+  quickInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing(1.75),
+  },
+  quickTexts: {flex: 1},
   quickIcon: {
-    width: 44,
-    height: 44,
+    width: 46,
+    height: 46,
     borderRadius: radius.md,
     backgroundColor: colors.accentSoft,
     alignItems: 'center',

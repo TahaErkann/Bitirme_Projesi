@@ -131,3 +131,8 @@ temp/
 # Geliştirici notları (kişisel)
 notes.local.md
 TODO.local.md
+
+# Bitirme raporu / sunum dokümanları ve üretim artefaktları (repoya dahil EDİLMEZ)
+_report_build/
+*.docx
+*.pdf

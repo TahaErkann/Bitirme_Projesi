@@ -38,6 +38,15 @@ class EnrichmentProvider(BaseLLMProvider):
         original_text: str,
         summary: str | None,
         target_lang: str,
-    ) -> str:
-        """300–500 kelimelik tek bir zenginleştirilmiş metin üretir."""
+    ) -> tuple[str, list[dict[str, str]], bool]:
+        """500–1000 kelimelik zenginleştirilmiş metin + kaynaklar + grounded.
+
+        Returns:
+            (enriched_text, sources, grounded)
+            - sources: her biri {"title","url"} olan liste; yoksa boş.
+            - grounded: metin BAŞARILI bir grounding (Google Search) çağrısından
+              mı geldi? True ise kaynaklar "yakalanmış" sayılır (boş olsa bile);
+              False ise grounding'e ulaşılamadı (kota/hata) → kaynaklar bilinmiyor,
+              caller cache'te NULL bırakıp sonra tekrar denemeli.
+        """
         raise NotImplementedError

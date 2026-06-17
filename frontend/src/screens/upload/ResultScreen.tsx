@@ -18,6 +18,7 @@ import {
   Animated,
   Easing,
   Linking,
+  Pressable,
   ScrollView,
   StyleSheet,
   View,
@@ -134,7 +135,9 @@ const ResultScreen: React.FC<{route: any; navigation: any}> = ({route, navigatio
     if (!placeId) return;
     setLoadingEnrich(true);
     try {
-      const r = await enrichPlace(placeId, language);
+      // Zaten metin varsa "Tekrar Üret" → cache'i atla, taze kaynaklarla üret.
+      const force = !!enrichment?.enriched_text;
+      const r = await enrichPlace(placeId, language, force);
       setEnrichment(r);
     } catch (e) {
       Alert.alert(t('result.enrichError'), extractErrorMessage(e));
@@ -145,11 +148,22 @@ const ResultScreen: React.FC<{route: any; navigation: any}> = ({route, navigatio
 
   const openMap = () => {
     if (place?.latitude == null || place.longitude == null) {
+      // Koordinat henüz çözülmediyse (geocode boş döndü) genel haritayı aç.
       navigation.navigate('DiscoverMap');
       return;
     }
-    const url = `geo:${place.latitude},${place.longitude}?q=${place.latitude},${place.longitude}(${encodeURIComponent(place.place_name)})`;
-    Linking.openURL(url).catch(() => undefined);
+    // Uygulama içi haritada yeri kırmızı işaretle göster (il/ilçe merkezi).
+    navigation.navigate('DiscoverMap', {
+      focusLat: Number(place.latitude),
+      focusLng: Number(place.longitude),
+      focusLabel: place.place_name,
+      focusSubtitle:
+        [place.district, place.city, place.country].filter(Boolean).join(', ') ||
+        undefined,
+      focusCategory: place.category
+        ? translateCategory(place.category, language)
+        : undefined,
+    });
   };
 
   if (!placeId) {
@@ -384,6 +398,40 @@ const ResultScreen: React.FC<{route: any; navigation: any}> = ({route, navigatio
               {t('result.moreInfoEmpty')}
             </Text>
           )}
+
+          {/* Kaynaklar — LLM'in grounding ile dayandığı gerçek web kaynakları */}
+          {enrichment?.sources && enrichment.sources.length > 0 ? (
+            <View style={styles.sourcesBox}>
+              <View style={styles.sourcesHeader}>
+                <Icon name="link" size={14} color={colors.gold} />
+                <Text
+                  style={[
+                    typography.overline,
+                    {color: colors.gold, marginLeft: 6},
+                  ]}>
+                  {t('result.sources')}
+                </Text>
+              </View>
+              {enrichment.sources.map((s, i) => (
+                <Pressable
+                  key={`${s.url}-${i}`}
+                  onPress={() => Linking.openURL(s.url).catch(() => undefined)}
+                  hitSlop={4}
+                  style={({pressed}) => [
+                    styles.sourceRow,
+                    pressed && {opacity: 0.55},
+                  ]}>
+                  <Icon name="open-in-new" size={14} color={colors.accent} />
+                  <Text
+                    numberOfLines={1}
+                    style={[typography.caption, styles.sourceText]}>
+                    {s.title}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
+
           <AppButton
             label={
               enrichment?.enriched_text
@@ -574,6 +622,32 @@ const styles = StyleSheet.create({
   videoHeader: {
     padding: spacing(2),
     paddingBottom: spacing(1),
+  },
+  sourcesBox: {
+    marginTop: spacing(2),
+    backgroundColor: colors.bgElevated,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.gold,
+    padding: spacing(1.5),
+  },
+  sourcesHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing(1),
+  },
+  sourceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing(0.75),
+    gap: 8,
+  },
+  sourceText: {
+    color: colors.info,
+    flex: 1,
+    textDecorationLine: 'underline',
   },
 });
 

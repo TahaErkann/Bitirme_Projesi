@@ -10,7 +10,7 @@
  * o aşamada bekler. Böylece kullanıcı "donmuş gibi" hissetmez.
  */
 import React, {useEffect, useMemo, useRef, useState} from 'react';
-import {Alert, Animated, Easing, StyleSheet, View} from 'react-native';
+import {Alert, Animated, Easing, Pressable, StyleSheet, View} from 'react-native';
 import {Text} from '@/components/AppText';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {SafeAreaView} from 'react-native-safe-area-context';
@@ -35,12 +35,30 @@ interface Stage {
 
 const STAGES: Stage[] = [
   {key: 'uploading', labelKey: 'upload.stage.uploading', icon: 'cloud-upload', unlockAt: 5, minMs: 800, visualPercent: 12},
-  {key: 'preprocessing', labelKey: 'upload.stage.preprocessing', icon: 'tune', unlockAt: 18, minMs: 1100, visualPercent: 28},
-  {key: 'ocr', labelKey: 'upload.stage.ocr', icon: 'text-fields', unlockAt: 40, minMs: 1400, visualPercent: 50},
-  {key: 'duplicate', labelKey: 'upload.stage.duplicate', icon: 'compare-arrows', unlockAt: 60, minMs: 1100, visualPercent: 68},
-  {key: 'categorizing', labelKey: 'upload.stage.categorizing', icon: 'category', unlockAt: 78, minMs: 1300, visualPercent: 84},
+  {key: 'preprocessing', labelKey: 'upload.stage.preprocessing', icon: 'tune', unlockAt: 18, minMs: 1100, visualPercent: 26},
+  {key: 'ocr', labelKey: 'upload.stage.ocr', icon: 'text-fields', unlockAt: 40, minMs: 1300, visualPercent: 46},
+  {key: 'moderation', labelKey: 'upload.stage.moderation', icon: 'verified-user', unlockAt: 56, minMs: 1000, visualPercent: 60},
+  {key: 'duplicate', labelKey: 'upload.stage.duplicate', icon: 'compare-arrows', unlockAt: 60, minMs: 1000, visualPercent: 72},
+  {key: 'categorizing', labelKey: 'upload.stage.categorizing', icon: 'category', unlockAt: 78, minMs: 1300, visualPercent: 86},
   {key: 'saving', labelKey: 'upload.stage.saving', icon: 'save', unlockAt: 92, minMs: 900, visualPercent: 96},
 ];
+
+/** Sunucudan gelen red kodunu (reason_code) i18n anahtarına eşler. */
+const reasonKeyFor = (code?: string | null): string => {
+  switch (code) {
+    case 'no_text':
+      return 'reject.reason.noText';
+    case 'unsafe':
+      return 'reject.reason.unsafe';
+    case 'advertisement':
+      return 'reject.reason.advertisement';
+    case 'personal':
+      return 'reject.reason.personal';
+    case 'irrelevant':
+    default:
+      return 'reject.reason.irrelevant';
+  }
+};
 
 const UploadScreen: React.FC<{route: any; navigation: any}> = ({route, navigation}) => {
   const {t} = useLanguage();
@@ -91,6 +109,7 @@ const UploadScreen: React.FC<{route: any; navigation: any}> = ({route, navigatio
     status?.status === 'FAILED';
 
   const isFailed = status?.status === 'FAILED';
+  const isRejected = status?.status === 'REJECTED';
 
   // Sahnedeki adım son aşamaya geldi mi (görsel olarak tamamlandı)?
   const isVisuallyComplete = shownStageIndex >= STAGES.length - 1;
@@ -99,7 +118,7 @@ const UploadScreen: React.FC<{route: any; navigation: any}> = ({route, navigatio
   // Backend hızlı bitirse bile sahnedeki her adım minimum süre kadar görünür
   // kalır → kullanıcı %0 → %100 atlamasını yaşamaz.
   useEffect(() => {
-    if (isFailed) return;
+    if (isFailed || isRejected) return;
     // Sahne tamamlandıysa daha fazla ilerleme yok
     if (isVisuallyComplete) return;
 
@@ -121,7 +140,7 @@ const UploadScreen: React.FC<{route: any; navigation: any}> = ({route, navigatio
     };
     const id = setInterval(tick, 150);
     return () => clearInterval(id);
-  }, [shownStageIndex, allowedStageIndex, isBackendDone, isFailed, isVisuallyComplete]);
+  }, [shownStageIndex, allowedStageIndex, isBackendDone, isFailed, isRejected, isVisuallyComplete]);
 
   // shownStageIndex değiştiğinde dwell saatçisini sıfırla
   useEffect(() => {
@@ -131,7 +150,7 @@ const UploadScreen: React.FC<{route: any; navigation: any}> = ({route, navigatio
   // Progress bar'ı SADECE sahnedeki adıma göre doldur — backend hızlı bitse
   // bile bar adımları takip eder, %12 → %100 zıplaması olmaz.
   useEffect(() => {
-    if (isFailed) return;
+    if (isFailed || isRejected) return;
     const target =
       isVisuallyComplete && isBackendDone && !isFailed
         ? 100
@@ -142,7 +161,7 @@ const UploadScreen: React.FC<{route: any; navigation: any}> = ({route, navigatio
       easing: Easing.out(Easing.cubic),
       useNativeDriver: false,
     }).start();
-  }, [shownStageIndex, isVisuallyComplete, isBackendDone, isFailed, progressAnim]);
+  }, [shownStageIndex, isVisuallyComplete, isBackendDone, isFailed, isRejected, progressAnim]);
 
   // Final navigation — backend bitti VE sahnedeki tüm adımlar görsel olarak
   // tamamlandı. Aksi halde dwell zinciri çalışmaya devam eder.
@@ -177,6 +196,84 @@ const UploadScreen: React.FC<{route: any; navigation: any}> = ({route, navigatio
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, navigation, isVisuallyComplete]);
+
+  // İçerik moderasyonu reddetti — ilerleme yerine temalı "kabul edilmedi"
+  // ekranını göster. (Tüm hook'lar yukarıda çağrıldığı için bu koşullu
+  // dönüş güvenli; hook sırası değişmez.)
+  if (isRejected) {
+    return (
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+        <Animated.View
+          style={[
+            styles.container,
+            {opacity: fade, transform: [{translateY: lift}]},
+          ]}>
+          <View style={[styles.kicker, styles.kickerReject]}>
+            <Icon name="block" size={13} color={colors.error} />
+            <Text style={[typography.overline, {color: colors.error}]}>
+              {t('reject.title')}
+            </Text>
+          </View>
+
+          <View style={styles.rejectIconWrap}>
+            <View style={styles.rejectIconCircle}>
+              <Icon name="block" size={50} color={colors.error} />
+            </View>
+          </View>
+
+          <Text
+            style={[
+              typography.h2,
+              {
+                color: colors.textPrimary,
+                marginTop: spacing(2.5),
+                textAlign: 'center',
+              },
+            ]}>
+            {t('reject.title')}
+          </Text>
+          <Text
+            style={[
+              typography.body,
+              {
+                color: colors.textSecondary,
+                textAlign: 'center',
+                marginTop: 8,
+                paddingHorizontal: spacing(1),
+              },
+            ]}>
+            {t(reasonKeyFor(status?.reason_code))}
+          </Text>
+          <Text
+            style={[
+              typography.caption,
+              {
+                color: colors.textMuted,
+                textAlign: 'center',
+                marginTop: spacing(1.5),
+              },
+            ]}>
+            {t('reject.body')}
+          </Text>
+
+          <OrnamentalDivider
+            icon="account-balance"
+            tint={colors.error}
+            style={styles.divider}
+          />
+
+          <Pressable
+            onPress={() => navigation.goBack()}
+            style={({pressed}) => [styles.retryBtn, pressed && {opacity: 0.85}]}>
+            <Icon name="add-a-photo" size={18} color={colors.textInverse} />
+            <Text style={[typography.button, {color: colors.textInverse}]}>
+              {t('reject.tryAgain')}
+            </Text>
+          </Pressable>
+        </Animated.View>
+      </SafeAreaView>
+    );
+  }
 
   const widthInterp = progressAnim.interpolate({
     inputRange: [0, 100],
@@ -500,6 +597,40 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: 3,
     backgroundColor: colors.textMuted,
+  },
+  // --- İçerik reddi ekranı ---
+  kickerReject: {
+    backgroundColor: colors.errorSoft,
+    borderColor: colors.error,
+  },
+  rejectIconWrap: {
+    width: ICON_SIZE * 1.5,
+    height: ICON_SIZE * 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rejectIconCircle: {
+    width: ICON_SIZE,
+    height: ICON_SIZE,
+    borderRadius: ICON_SIZE / 2,
+    backgroundColor: colors.errorSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: colors.error,
+    ...shadow.md,
+  },
+  retryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    alignSelf: 'stretch',
+    backgroundColor: colors.accent,
+    borderRadius: radius.lg,
+    paddingVertical: 14,
+    marginTop: spacing(1),
+    ...shadow.sm,
   },
 });
 

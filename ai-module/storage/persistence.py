@@ -14,7 +14,10 @@ categorization_tasks.save_results buradaki async fonksiyonu çağırır.
 """
 from __future__ import annotations
 
+import difflib
 import logging
+import re
+import unicodedata
 import uuid
 from typing import Any
 
@@ -22,6 +25,49 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlalchemy.pool import NullPool
 
 logger = logging.getLogger("tourlens.persistence")
+
+
+def _normalize_name(name: str | None) -> str:
+    """İsmi diakritiksiz, küçük harfli, sade ASCII alfasayısal forma indirger.
+
+    "Malkoçoğlu Mehmet Bey" → "malkocoglu mehmet bey". Türkçe karakterler
+    (ç/ş/ğ/ö/ü/ı/İ) ASCII karşılıklarına çözülür ki bulanık karşılaştırma
+    OCR/LLM kaynaklı küçük yazım farklarına dayanıklı olsun.
+    """
+    if not name:
+        return ""
+    text = name.strip().lower().replace("ı", "i")
+    text = unicodedata.normalize("NFKD", text)
+    text = "".join(ch for ch in text if not unicodedata.combining(ch))
+    text = re.sub(r"[^a-z0-9]+", " ", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _names_match(a: str | None, b: str | None, ratio_min: float) -> bool:
+    """İki yer/kişi adı 'aynı yer' sayılacak kadar benziyor mu?
+
+    - Normalize edilmiş adlar birebir eşitse → eşleşir.
+    - Biri diğerinin büyük bir alt parçasıysa (örn. "X" vs "X Türbesi") → eşleşir.
+    - Aksi halde SequenceMatcher oranı eşiği geçerse → eşleşir.
+    """
+    na, nb = _normalize_name(a), _normalize_name(b)
+    if not na or not nb:
+        return False
+    if na == nb:
+        return True
+    shorter, longer = (na, nb) if len(na) <= len(nb) else (nb, na)
+    if len(shorter) >= 5 and len(shorter) >= 0.6 * len(longer) and shorter in longer:
+        return True
+    return difflib.SequenceMatcher(None, na, nb).ratio() >= ratio_min
+
+
+def _city_compatible(a: str | None, b: str | None) -> bool:
+    """Şehirler uyumlu mu? Biri boş/bilinmiyorsa (kırpılmış tabela) engellemez;
+    ikisi de doluysa normalize eşitlik aranır."""
+    na, nb = _normalize_name(a), _normalize_name(b)
+    if not na or not nb:
+        return True
+    return na == nb
 
 
 async def persist_pipeline_result(
@@ -73,11 +119,19 @@ async def persist_pipeline_result(
         async with task_session_maker() as session:  # type: AsyncSession
             repo = PlaceRepository(session)
 
-            # Mükerrer kontrol — primer ölçüt embedding similarity skorudur.
-            # similarity_threshold (default 0.85) eşiğini geçen en yüksek
-            # skorlu aday MÜKERRER kabul edilir. LLM'in döndürdüğü place_name
-            # / city aynı yer için bile değişebildiği için ekstra bir name+city
-            # eşleşmesi şart koşmuyoruz.
+            # Mükerrer kontrol — HİBRİT (yalnız-embedding kırılgan: aynı tabela
+            # farklı kırpılınca/ışıkta OCR metni değişir, cosine eşiğin altına
+            # düşer). İki yol:
+            #   1) score >= similarity_threshold (güçlü)           → tek başına mükerrer.
+            #   2) score >= duplicate_relaxed_threshold (gevşek) VE
+            #      place_name bulanık eşleşir VE şehir uyumluysa   → mükerrer.
+            # Böylece "Gebze Belediyesi" kırpma farkı gibi metin oynamaları
+            # yakalanır; farklı yerler (düşük isim benzerliği) birleşmez.
+            relaxed_threshold = float(
+                getattr(settings, "duplicate_relaxed_threshold", 0.62)
+            )
+            name_ratio_min = float(getattr(settings, "duplicate_name_ratio", 0.80))
+
             duplicate_id: uuid.UUID | None = None
             place_name = (categorization.get("place_name") or "").strip()
             city = categorization.get("city")
@@ -86,8 +140,10 @@ async def persist_pipeline_result(
             )
             for cand in ordered_candidates:
                 score = float(cand.get("score", 0.0))
-                if score < similarity_threshold:
-                    continue
+                # Aday listesi skora göre azalan sıralı; gevşek eşiğin de
+                # altına inince geri kalanlar da elenir → kısa devre.
+                if score < relaxed_threshold:
+                    break
                 cand_pid = cand.get("place_id")
                 if not cand_pid:
                     continue
@@ -97,9 +153,17 @@ async def persist_pipeline_result(
                     continue
                 if existing is None:
                     continue
+
+                strong = score >= similarity_threshold
+                name_ok = _names_match(place_name, existing.place_name, name_ratio_min)
+                city_ok = _city_compatible(city, existing.city)
+                if not (strong or (name_ok and city_ok)):
+                    continue
                 logger.info(
-                    "Mükerrer tespit edildi: cand_place=%s score=%.3f new_name=%r existing_name=%r",
-                    existing.id, score, place_name, existing.place_name,
+                    "Mükerrer tespit: cand=%s score=%.3f strong=%s name_ok=%s "
+                    "city_ok=%s new_name=%r existing_name=%r",
+                    existing.id, score, strong, name_ok, city_ok,
+                    place_name, existing.place_name,
                 )
                 duplicate_id = existing.id
                 break

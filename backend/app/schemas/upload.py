@@ -11,10 +11,12 @@ TaskStatus = Literal[
     "PENDING",
     "PREPROCESSING",
     "OCR_PROCESSING",
+    "MODERATING",
     "CHECKING_DUPLICATE",
     "CATEGORIZING",
     "COMPLETED",
     "DUPLICATE",
+    "REJECTED",
     "FAILED",
 ]
 
@@ -35,4 +37,8 @@ class UploadStatusResponse(BaseModel):
     progress: int = 0  # 0..100
     place_id: UUID | None = None
     duplicate_of: UUID | None = None
+    # İçerik moderasyonu reddinde doldurulur: reason_code frontend i18n anahtarına
+    # eşlenir, reason ise sunucudan gelen (Türkçe) açıklama/loglama metnidir.
+    reason_code: str | None = None
+    reason: str | None = None
     error: str | None = None

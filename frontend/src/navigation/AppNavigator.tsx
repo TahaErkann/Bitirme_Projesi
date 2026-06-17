@@ -44,7 +44,15 @@ export type RootStackParamList = {
   Result: {taskId: string; placeId?: string} | {placeId: string};
   Processing: {taskId: string};
   PlaceDetail: {placeId: string};
-  DiscoverMap: undefined;
+  DiscoverMap:
+    | {
+        focusLat: number;
+        focusLng: number;
+        focusLabel?: string;
+        focusSubtitle?: string;
+        focusCategory?: string;
+      }
+    | undefined;
   Settings: undefined;
   Crop: {imageUri: string; imageType?: string};
   MyPlaces: {mode: 'liked' | 'uploads'};

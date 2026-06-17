@@ -53,7 +53,12 @@ export async function getUploadStatus(taskId: string): Promise<UploadStatusRespo
 export async function pollUploadUntilDone(taskId: string): Promise<UploadStatusResponse> {
   for (let i = 0; i < UPLOAD_POLL_MAX_ATTEMPTS; i++) {
     const s = await getUploadStatus(taskId);
-    if (s.status === 'COMPLETED' || s.status === 'DUPLICATE' || s.status === 'FAILED') {
+    if (
+      s.status === 'COMPLETED' ||
+      s.status === 'DUPLICATE' ||
+      s.status === 'REJECTED' ||
+      s.status === 'FAILED'
+    ) {
       return s;
     }
     await new Promise(r => setTimeout(r, UPLOAD_POLL_INTERVAL_MS));

@@ -32,8 +32,19 @@ export async function translatePlace(id: UUID, lang: string): Promise<Translatio
   return r.data;
 }
 
-export async function enrichPlace(id: UUID, lang: string): Promise<EnrichResponse> {
-  const r = await api.post<EnrichResponse>(`/places/${id}/enrich`, {language_code: lang});
+export async function enrichPlace(
+  id: UUID,
+  lang: string,
+  force = false,
+): Promise<EnrichResponse> {
+  // Grounding (Google Search) + 500-1000 kelimelik üretim, varsayılan 30s axios
+  // timeout'unu aşabiliyor → bu uzun-süren istek için özel olarak 120s veriyoruz.
+  // Aksi halde RN tarafında "Network Error" olarak görünür (istek 30s'te iptal).
+  const r = await api.post<EnrichResponse>(
+    `/places/${id}/enrich`,
+    {language_code: lang, force},
+    {timeout: 120_000},
+  );
   return r.data;
 }
 

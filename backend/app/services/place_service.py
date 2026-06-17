@@ -83,7 +83,26 @@ class PlaceService:
             )
         ).scalars().all()
 
-        # View sayacı +1
+        # Koordinat yoksa (LLM koordinat döndürmez) il/ilçe merkezini geocode
+        # et ve kalıcılaştır → "Haritada Gör" yeri kırmızı işaretle gösterebilir.
+        # Bir kez çözülünce coords dolu olur, sonraki açılışlarda atlanır.
+        if (place.latitude is None or place.longitude is None) and (
+            place.city or place.district or place.country
+        ):
+            try:
+                from app.services.geocoding import geocode_place
+
+                coords = await geocode_place(
+                    district=place.district,
+                    city=place.city,
+                    country=place.country,
+                )
+                if coords:
+                    place.latitude, place.longitude = coords
+            except Exception as exc:  # pragma: no cover
+                logger.warning("Geocode get_detail içinde başarısız: %s", exc)
+
+        # View sayacı +1 (ve varsa yeni koordinatlar) tek commit ile yazılır.
         await self.places.increment_view(place_id)
         await self.db.commit()
 
@@ -170,13 +189,22 @@ class PlaceService:
         return (await self.db.execute(stmt)).scalar_one_or_none()
 
     async def save_enrichment(
-        self, place_id: UUID, lang: str, text: str, provider: str
+        self,
+        place_id: UUID,
+        lang: str,
+        text: str,
+        provider: str,
+        sources: list[dict[str, str]] | None = None,
     ) -> Enrichment:
         row = Enrichment(
             place_id=place_id,
             language_code=lang,
             enriched_text=text,
             llm_provider=provider,
+            # Olduğu gibi yaz (None→NULL): caller grounding BAŞARILIYSA liste
+            # (boş olsa bile "yakalandı") geçer; grounding'e ulaşılamadıysa
+            # (kota/hata) None geçer → NULL kalır → sonraki tıklama tekrar dener.
+            sources=sources,
         )
         self.db.add(row)
         await self.db.commit()
@@ -193,11 +221,22 @@ class PlaceService:
 
     # ---------------- Enrichment cevap helper ----------------
     @staticmethod
-    def to_enrich_response(row: Enrichment, *, cached: bool) -> EnrichResponse:
+    def to_enrich_response(
+        row: Enrichment,
+        *,
+        cached: bool,
+        sources: list[dict[str, str]] | None = None,
+    ) -> EnrichResponse:
+        from app.schemas.place import EnrichSource
+
+        # `sources` açıkça verilmediyse satırda saklanan kaynakları kullan
+        # (cache hit'te kaynakların DB'den dönmesini sağlar — Sorun 1 fix).
+        effective = sources if sources is not None else (row.sources or [])
         return EnrichResponse(
             place_id=row.place_id,
             language_code=row.language_code,
             enriched_text=row.enriched_text,
             llm_provider=row.llm_provider or "unknown",
             cached=cached,
+            sources=[EnrichSource(**s) for s in effective],
         )

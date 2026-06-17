@@ -20,7 +20,12 @@ export function useUploadStatus(taskId: string | null) {
         const s = await getUploadStatus(taskId);
         if (cancelled) return;
         setStatus(s);
-        if (s.status === 'COMPLETED' || s.status === 'DUPLICATE' || s.status === 'FAILED') {
+        if (
+          s.status === 'COMPLETED' ||
+          s.status === 'DUPLICATE' ||
+          s.status === 'REJECTED' ||
+          s.status === 'FAILED'
+        ) {
           return;
         }
       } catch {

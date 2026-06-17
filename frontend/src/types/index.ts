@@ -30,10 +30,12 @@ export type TaskStatus =
   | 'PENDING'
   | 'PREPROCESSING'
   | 'OCR_PROCESSING'
+  | 'MODERATING'
   | 'CHECKING_DUPLICATE'
   | 'CATEGORIZING'
   | 'COMPLETED'
   | 'DUPLICATE'
+  | 'REJECTED'
   | 'FAILED';
 
 export interface UploadResponse {
@@ -48,6 +50,10 @@ export interface UploadStatusResponse {
   progress: number;
   place_id?: UUID | null;
   duplicate_of?: UUID | null;
+  // İçerik moderasyonu reddinde dolar: reason_code → i18n anahtarı (reject.reason.*),
+  // reason → sunucudan gelen açıklama (debug/loglama).
+  reason_code?: string | null;
+  reason?: string | null;
   error?: string | null;
 }
 
@@ -114,12 +120,18 @@ export interface TranslationResponse {
   cached: boolean;
 }
 
+export interface EnrichSource {
+  title: string;
+  url: string;
+}
+
 export interface EnrichResponse {
   place_id: UUID;
   language_code: string;
   enriched_text: string;
   llm_provider: string;
   cached: boolean;
+  sources: EnrichSource[];
 }
 
 export interface YouTubeVideo {

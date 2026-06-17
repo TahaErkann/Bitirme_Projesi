@@ -68,5 +68,8 @@ def run_ocr(self, prev: dict[str, Any]) -> dict[str, Any]:
         "cleaned_text": clean_text(ocr["text"]),
         "detected_language": ocr.get("language"),
         "confidence": ocr.get("confidence"),
+        # İçerik moderasyonu (moderate_content) için Vision sinyalleri.
+        "labels": ocr.get("labels") or [],
+        "safe_search": ocr.get("safe_search") or {},
         "progress": 55,
     }

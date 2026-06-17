@@ -85,6 +85,15 @@ class TranslationResponse(BaseModel):
 
 class EnrichRequest(BaseModel):
     language_code: str = Field(default="en", min_length=2, max_length=10)
+    # force=True → cache atlanır, grounding ile yeniden üretilir (Tekrar Üret).
+    force: bool = False
+
+
+class EnrichSource(BaseModel):
+    """'Daha Fazla Bilgi' metninin dayandığı gerçek web kaynağı."""
+
+    title: str
+    url: str
 
 
 class EnrichResponse(BaseModel):
@@ -93,6 +102,9 @@ class EnrichResponse(BaseModel):
     enriched_text: str
     llm_provider: str
     cached: bool = False
+    # Grounding ile gelen kaynaklar. DB'de saklanmaz → sadece taze üretimde dolu;
+    # cache hit'te boş döner.
+    sources: list[EnrichSource] = Field(default_factory=list)
 
 
 class YouTubeVideo(BaseModel):
